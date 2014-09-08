@@ -60,10 +60,13 @@ class Dwim
       'hex'
       ])
 
-    @mapping.commands[0] = new MoveCommand(LEFT.theta)
-    @mapping.commands[1] = new MoveCommand(UP.theta)
-    #@mapping.commands[2] = new MoveCommand(DOWN.theta)
-    @mapping.commands[3] = new MoveCommand(RIGHT.theta)
+    @mapping.commands[0] = new MoveCommand(LEFT)
+    @mapping.commands[1] = new MoveCommand(UP)
+    #@mapping.commands[2] = new MoveCommand(DOWN)
+    @mapping.commands[3] = new MoveCommand(RIGHT)
+
+    @pc = 0
+    @execute()
 
     @startRenderer()
     @startInput()
@@ -108,14 +111,38 @@ class Dwim
         dir.theta
       )
 
+  execute: () ->
+    @program.active = @pc
+    @mapping.active = @program.instructions[@pc]
+
+    next_command = @mapping.mapActive()
+    console.log('active instr = ' + @mapping.active)
+
+    if next_command?
+      @allowed_move = next_command.movePoint((x: @botx, y: @boty))
+    else
+      @allowed_move = null
+
   moveBotTo: (x, y, dir) ->
+    console.log('want ' +x+','+y)
     # check borders
     if x < 0 or y < 0 or x >= @Wi or y >= @Hi
       return false
 
+    if @allowed_move?
+      console.log('allowed ' +@allowed_move.x+','+@allowed_move.y)
+      if @allowed_move.x != x or @allowed_move.y != y
+        return false
+    else
+      # need to do stuff here with filling in the mapping
+      true
+
     @botx = x
     @boty = y
     @botdir = dir
+
+    @pc +=1
+    @execute()
 
     return true
 
@@ -123,23 +150,44 @@ class Dwim
 class Program
   constructor: (@instructions) ->
 
-  render: (ctx) ->
+  render: (ctx, t = 0) ->
     cs = g.command_size
 
     ctx.save()
     g.setStyle(ctx, g.thick_lined_style)
 
-    ctx.translate(cs/2, cs/2)
+    if @active?
+      ctx.translate(cs/2, cs/2 - (@active+t) * cs)
+    else
+      ctx.translate(cs/2, cs/2)
 
     for instruction in @instructions
       g.renderShape(ctx, instruction, g.inner_command_size/2)
+
       ctx.translate(0, cs)
 
     ctx.restore()
 
+    if @active?
+      ctx.save()
+      g.setStyle(ctx, g.lined_style)
+      ctx.strokeRect(0, 0, cs, cs)
+      ctx.restore()
+
+
 class Mapping
   constructor: (@symbol_names) ->
     @commands = []
+
+  mapActive: () ->
+    if @active?
+      idx = @symbol_names.indexOf(@active)
+      if idx == -1
+        return null
+      else
+        return @commands[idx]
+    else
+      return null
 
   render: (ctx) ->
     ocs = g.outer_command_size
@@ -193,10 +241,13 @@ class Mapping
 class MoveCommand
   constructor: (@movedir) ->
 
+  movePoint: (pos) ->
+    return x: pos.x + @movedir.dx, y: pos.y + @movedir.dy
+
   render: (ctx) ->
     ctx.save()
     g.setStyle(ctx, g.lined_style)
-    g.renderArrow(ctx, @movedir, g.inner_command_size)
+    g.renderArrow(ctx, @movedir.theta, g.inner_command_size)
     ctx.restore()
 
 window.Dwim = Dwim
