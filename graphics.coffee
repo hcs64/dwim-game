@@ -4,6 +4,17 @@ g = {}
 
 g.cell_size = cell_size = 32
 
+g.clear = (ctx, width, height) ->
+  ctx.fillStyle = 'black'
+  ctx.fillRect(0,0,width,height)
+
+g.border = (ctx, width, height) ->
+  ctx.save()
+  ctx.strokeStyle = 'white'
+  ctx.lineWidth = 1.5
+  ctx.strokeRect(0,0,width,height)
+  ctx.restore()
+
 # bot graphics
 hr3 = Math.sqrt(3)/2
 rr3 = 1/Math.sqrt(3)

@@ -32,6 +32,13 @@ reverseDir = (dir) ->
 class Dwim
   constructor: (@cnv) ->
     @ctx = @cnv.getContext('2d')
+    @W = @cnv.width
+    @H = @cnv.height
+
+    @Wi = Math.floor(@W / @g.cell_size)
+    @Hi = Math.floor(@H / @g.cell_size)
+  
+  g: window.dwim_graphics
 
   start: ->
     @botx = 5
@@ -47,14 +54,14 @@ class Dwim
     registerKeyFunction(@keyboardCB)
 
   render: =>
+    @g.clear(@ctx, @W, @H)
+    @g.border(@ctx, @W, @H)
 
-    @ctx.fillStyle = 'black'
-    @ctx.fillRect(0, 0, @cnv.width, @cnv.height)
     bot =
       showxi: @botx
       showyi: @boty
       showdir: @botdir
-      render: window.dwim_graphics.renderBot
+      render: @g.renderBot
 
     bot.render(@ctx)
     
@@ -64,8 +71,21 @@ class Dwim
   keyboardCB: (key) =>
     if key of keymap
       dir = keymap[key]
-      @botx += dir.dx
-      @boty += dir.dy
-      @botdir = dir.theta
+      @moveBotTo(
+        @botx + dir.dx,
+        @boty + dir.dy,
+        dir.theta
+      )
+
+  moveBotTo: (x, y, dir) ->
+    # check borders
+    if x < 0 or y < 0 or x >= @Wi or y >= @Hi
+      return false
+
+    @botx = x
+    @boty = y
+    @botdir = dir
+
+    return true
 
 window.Dwim = Dwim
