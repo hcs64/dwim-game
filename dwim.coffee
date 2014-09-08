@@ -54,6 +54,22 @@ class Dwim
       new MoveCommand(RIGHT.theta)
       ])
 
+    @mapping = new Mapping( [
+      new Instruction('circle'),
+      new Instruction('square'),
+      new Instruction('diamond'),
+      new Instruction('hex'),
+      new MoveCommand(UP.theta),
+      new MoveCommand(DOWN.theta),
+      new MoveCommand(LEFT.theta),
+      new MoveCommand(RIGHT.theta)
+      ])
+
+    @mapping.commands[0] = new MoveCommand(LEFT.theta)
+    @mapping.commands[1] = new MoveCommand(UP.theta)
+    @mapping.commands[2] = new MoveCommand(DOWN.theta)
+    @mapping.commands[3] = new MoveCommand(RIGHT.theta)
+
     @startRenderer()
     @startInput()
 
@@ -78,6 +94,11 @@ class Dwim
     @ctx.save()
     @ctx.translate(30,30)
     @program.render(@ctx)
+    @ctx.restore()
+
+    @ctx.save()
+    @ctx.translate(230,30)
+    @mapping.render(@ctx)
     @ctx.restore()
     
     if not @stop_render
@@ -109,9 +130,59 @@ class Program
 
   render: (ctx) ->
     ctx.save()
+    ctx.translate(g.command_size/2, g.command_size/2)
     for i in @instructions
-      ctx.translate(0, g.command_size)
       i.render(ctx)
+      ctx.translate(0, g.command_size)
+    ctx.restore()
+
+class Mapping
+  constructor: (@symbols) ->
+    @commands = []
+
+  render: (ctx) ->
+    ocs = g.outer_command_size
+
+    ctx.save()
+    g.setStyle(ctx, g.lined_style)
+
+    # container
+    ctx.beginPath()
+    ctx.moveTo(0,0)
+    ctx.lineTo(ocs * 2, 0)
+    ctx.lineTo(ocs * 2, ocs * @symbols.length)
+    ctx.lineTo(0, ocs * @symbols.length)
+    ctx.closePath()
+    ctx.stroke()
+
+    # vertical divider
+    ctx.beginPath()
+    ctx.moveTo(ocs, 0)
+    ctx.lineTo(ocs, ocs * @symbols.length)
+    ctx.stroke()
+
+    # horizontal dividers
+    for idx in [1...@symbols.length]
+      ctx.beginPath()
+      ctx.moveTo(0, ocs * idx)
+      ctx.lineTo(ocs * 2, ocs * idx)
+      ctx.stroke()
+    
+    # render symbols
+    ctx.save()
+    ctx.translate(ocs/2, ocs/2)
+    for s in @symbols
+      s.render(ctx)
+      ctx.translate(0, ocs)
+    ctx.restore()
+
+    # render commands
+    ctx.translate(ocs*3/2, ocs/2)
+    for idx in [0...@symbols.length]
+      if idx of @commands
+        @commands[idx].render(ctx)
+      ctx.translate(0, ocs)
+
     ctx.restore()
 
 class Symbol

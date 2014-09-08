@@ -152,6 +152,7 @@ g.renderShape = (ctx, shape, radius) ->
 # command graphics
 g.command_size = command_size = 32
 g.inner_command_size = inner_command_size = 29
+g.outer_command_size = 38
 command_scrim_points = do ->
   ics = inner_command_size
   [
