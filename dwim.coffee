@@ -44,30 +44,25 @@ class Dwim
     @botdir = UP.theta
 
     @program = new Program( [
-      new Instruction('circle'),
-      new Instruction('square'),
-      new Instruction('diamond'),
-      new Instruction('hex'),
-      new MoveCommand(UP.theta),
-      new MoveCommand(DOWN.theta),
-      new MoveCommand(LEFT.theta),
-      new MoveCommand(RIGHT.theta)
+      'circle',
+      'circle',
+      'square',
+      'circle',
+      'square',
+      'circle',
+      'circle'
       ])
 
     @mapping = new Mapping( [
-      new Instruction('circle'),
-      new Instruction('square'),
-      new Instruction('diamond'),
-      new Instruction('hex'),
-      new MoveCommand(UP.theta),
-      new MoveCommand(DOWN.theta),
-      new MoveCommand(LEFT.theta),
-      new MoveCommand(RIGHT.theta)
+      'circle',
+      'square'
+      'diamond'
+      'hex'
       ])
 
     @mapping.commands[0] = new MoveCommand(LEFT.theta)
     @mapping.commands[1] = new MoveCommand(UP.theta)
-    @mapping.commands[2] = new MoveCommand(DOWN.theta)
+    #@mapping.commands[2] = new MoveCommand(DOWN.theta)
     @mapping.commands[3] = new MoveCommand(RIGHT.theta)
 
     @startRenderer()
@@ -129,15 +124,21 @@ class Program
   constructor: (@instructions) ->
 
   render: (ctx) ->
+    cs = g.command_size
+
     ctx.save()
-    ctx.translate(g.command_size/2, g.command_size/2)
-    for i in @instructions
-      i.render(ctx)
-      ctx.translate(0, g.command_size)
+    g.setStyle(ctx, g.thick_lined_style)
+
+    ctx.translate(cs/2, cs/2)
+
+    for instruction in @instructions
+      g.renderShape(ctx, instruction, g.inner_command_size/2)
+      ctx.translate(0, cs)
+
     ctx.restore()
 
 class Mapping
-  constructor: (@symbols) ->
+  constructor: (@symbol_names) ->
     @commands = []
 
   render: (ctx) ->
@@ -150,67 +151,49 @@ class Mapping
     ctx.beginPath()
     ctx.moveTo(0,0)
     ctx.lineTo(ocs * 2, 0)
-    ctx.lineTo(ocs * 2, ocs * @symbols.length)
-    ctx.lineTo(0, ocs * @symbols.length)
+    ctx.lineTo(ocs * 2, ocs * @symbol_names.length)
+    ctx.lineTo(0, ocs * @symbol_names.length)
     ctx.closePath()
     ctx.stroke()
 
     # vertical divider
     ctx.beginPath()
     ctx.moveTo(ocs, 0)
-    ctx.lineTo(ocs, ocs * @symbols.length)
+    ctx.lineTo(ocs, ocs * @symbol_names.length)
     ctx.stroke()
 
     # horizontal dividers
-    for idx in [1...@symbols.length]
+    for idx in [1...@symbol_names.length]
       ctx.beginPath()
       ctx.moveTo(0, ocs * idx)
       ctx.lineTo(ocs * 2, ocs * idx)
       ctx.stroke()
     
-    # render symbols
+    # symbols
     ctx.save()
     ctx.translate(ocs/2, ocs/2)
-    for s in @symbols
-      s.render(ctx)
+    for name in @symbol_names
+      g.renderShape(ctx, name, g.inner_command_size/2)
       ctx.translate(0, ocs)
     ctx.restore()
 
-    # render commands
+    # commands (if present)
     ctx.translate(ocs*3/2, ocs/2)
-    for idx in [0...@symbols.length]
+    for idx in [0...@symbol_names.length]
       if idx of @commands
         @commands[idx].render(ctx)
       ctx.translate(0, ocs)
 
     ctx.restore()
 
-class Symbol
-  constructor: () ->
-
-  render: (ctx) ->
-    g.renderCommandScrim(ctx)
-
-class Instruction extends Symbol
-  constructor: (@shape) ->
-
-  render: (ctx) ->
-    super ctx
-
     ctx.save()
     g.setStyle(ctx, g.lined_style)
-    g.renderShape(ctx, @shape, g.inner_command_size/2)
     ctx.restore()
 
-class Command extends Symbol
-  constructor: () ->
-
-class MoveCommand extends Command
+class MoveCommand
   constructor: (@movedir) ->
 
   render: (ctx) ->
-    super ctx
-
     ctx.save()
     g.setStyle(ctx, g.lined_style)
     g.renderArrow(ctx, @movedir, g.inner_command_size)
