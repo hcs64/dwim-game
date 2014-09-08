@@ -27,7 +27,7 @@ reverseDir = (dir) ->
     when RIGHT
       return LEFT
 
-
+g = window.dwim_graphics
 
 class Dwim
   constructor: (@cnv) ->
@@ -35,38 +35,53 @@ class Dwim
     @W = @cnv.width
     @H = @cnv.height
 
-    @Wi = Math.floor(@W / @g.cell_size)
-    @Hi = Math.floor(@H / @g.cell_size)
+    @Wi = Math.floor(@W / g.cell_size)
+    @Hi = Math.floor(@H / g.cell_size)
   
-  g: window.dwim_graphics
-
   start: ->
     @botx = 5
     @boty = 5
     @botdir = UP.theta
+
+    @program = new Program( [
+      new Instruction('circle'),
+      new Instruction('square'),
+      new Instruction('diamond'),
+      new Instruction('hex'),
+      new MoveCommand(UP.theta),
+      new MoveCommand(DOWN.theta),
+      new MoveCommand(LEFT.theta),
+      new MoveCommand(RIGHT.theta)
+      ])
+
     @startRenderer()
     @startInput()
 
   startRenderer: ->
-    requestAnimationFrame(@render)
+    requestAnimationFrame(@renderCB)
 
   startInput: ->
     registerKeyFunction(@keyboardCB)
 
-  render: =>
-    @g.clear(@ctx, @W, @H)
-    @g.border(@ctx, @W, @H)
+  renderCB: =>
+    g.clear(@ctx, @W, @H)
+    g.border(@ctx, @W, @H)
 
     bot =
       showxi: @botx
       showyi: @boty
       showdir: @botdir
-      render: @g.renderBot
+      render: g.renderBot
 
     bot.render(@ctx)
+
+    @ctx.save()
+    @ctx.translate(30,30)
+    @program.render(@ctx)
+    @ctx.restore()
     
     if not @stop_render
-      requestAnimationFrame(@render)
+      requestAnimationFrame(@renderCB)
 
   keyboardCB: (key) =>
     if key of keymap
@@ -88,4 +103,47 @@ class Dwim
 
     return true
 
+
+class Program
+  constructor: (@instructions) ->
+
+  render: (ctx) ->
+    ctx.save()
+    for i in @instructions
+      ctx.translate(0, g.command_size)
+      i.render(ctx)
+    ctx.restore()
+
+class Symbol
+  constructor: () ->
+
+  render: (ctx) ->
+    g.renderCommandScrim(ctx)
+
+class Instruction extends Symbol
+  constructor: (@shape) ->
+
+  render: (ctx) ->
+    super ctx
+
+    ctx.save()
+    g.setStyle(ctx, g.lined_style)
+    g.renderShape(ctx, @shape, g.inner_command_size/2)
+    ctx.restore()
+
+class Command extends Symbol
+  constructor: () ->
+
+class MoveCommand extends Command
+  constructor: (@movedir) ->
+
+  render: (ctx) ->
+    super ctx
+
+    ctx.save()
+    g.setStyle(ctx, g.lined_style)
+    g.renderArrow(ctx, @movedir, g.inner_command_size)
+    ctx.restore()
+
 window.Dwim = Dwim
+

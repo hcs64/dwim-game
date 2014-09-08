@@ -4,14 +4,37 @@ g = {}
 
 g.cell_size = cell_size = 32
 
+clear_style = fill: 'black'
+lined_style = stroke: 'white', width: 1.5, fill: 'black'
+pixlined_style = stroke: 'white', width: 1, fill: 'black'
+filled_style = fill: 'white'
+
+g.lined_style  = lined_style
+bot_style = lined_style
+
+light_link_style = stroke: 'white', width: .5
+node_text_style = fill: 'white', font: '16px monospace'
+node_text_error_style = fill: 'red', font: '16px monospace'
+node_text_spacing = 18
+menu_text_style = fill: 'white', font: '16px sans'
+menu_text_invert_style = fill: 'black', font: '16px sans'
+menu_text_spacing = 18
+
+g.setStyle = setStyle = (ctx, s) ->
+  ctx.fillStyle   = s.fill   if s.fill
+  ctx.strokeStyle = s.stroke if s.stroke
+  ctx.lineWidth   = s.width  if s.width
+  ctx.font        = s.font   if s.font
+
 g.clear = (ctx, width, height) ->
-  ctx.fillStyle = 'black'
+  ctx.save()
+  setStyle(ctx, clear_style)
   ctx.fillRect(0,0,width,height)
+  ctx.restore()
 
 g.border = (ctx, width, height) ->
   ctx.save()
-  ctx.strokeStyle = 'white'
-  ctx.lineWidth = 1.5
+  setStyle(ctx, lined_style)
   ctx.strokeRect(0,0,width,height)
   ctx.restore()
 
@@ -25,7 +48,7 @@ bot_points = [
   (x: -bot_size * (hr3-rr3), y: bot_size/2)
 ]
 
-g.renderBot = (ctx, dying = 0) ->
+g.renderBot = (ctx) ->
   bp = bot_points
   ctx.save()
   ctx.translate((@showxi + .5) * cell_size, (@showyi + .5) * cell_size)
@@ -37,14 +60,7 @@ g.renderBot = (ctx, dying = 0) ->
   ctx.lineTo(bp[2].x, bp[2].y)
   ctx.closePath()
 
-  ctx.lineWidth = 1.5
-  ctx.fillStyle = 'black'
-
-  intensity = Math.floor((1-dying)*(1-dying)*255)
-  if dying == 0
-    ctx.strokeStyle = 'white'
-  else
-    ctx.strokeStyle = "rgb(#{intensity},#{intensity},#{intensity})"
+  setStyle(ctx, bot_style)
 
   ctx.fill()
   ctx.stroke()
@@ -61,9 +77,7 @@ g.renderBot = (ctx, dying = 0) ->
 
 # obstacle graphics
 g.renderMine = (ctx) ->
-    ctx.fillStyle = 'black'
-    ctx.strokeStyle = 'white'
-    ctx.lineWidth = 1
+    setStyle(ctx, pixlined_style)
 
     ctx.beginPath()
     ctx.moveTo(-cell_size*.35,-cell_size*.35)
@@ -98,11 +112,46 @@ g.renderArrow  = (ctx, dir, size) ->
   ctx.lineTo(as/2-ahs,-ahs)
   ctx.stroke()
 
+  ctx.rotate(dir)
+
+  return
+
+g.renderShape = (ctx, shape, radius) ->
+  ctx.beginPath()
+  switch shape
+    when 'circle'
+      ctx.arc(0,0,radius*.8,0,Math.PI*2)
+    when 'square'
+      r = radius*.75
+      ctx.moveTo(-r,-r)
+      ctx.lineTo(-r,+r)
+      ctx.lineTo(+r,+r)
+      ctx.lineTo(+r,-r)
+      ctx.closePath()
+    when 'diamond'
+      r = radius*Math.SQRT1_2*1.125
+      ctx.moveTo(-r,0)
+      ctx.lineTo(0,+r)
+      ctx.lineTo(+r,0)
+      ctx.lineTo(0,-r)
+      ctx.closePath()
+    when 'hex'
+      r = radius * .8
+      r2 = r/2
+      ctx.moveTo(-r,0)
+      ctx.lineTo(-r2,-r)
+      ctx.lineTo(+r2,-r)
+      ctx.lineTo(+r,0)
+      ctx.lineTo(+r2,+r)
+      ctx.lineTo(-r2,+r)
+      ctx.closePath()
+
+  ctx.stroke()
   return
 
 # command graphics
-command_size = 32
-inner_command_size = 29
+g.command_size = command_size = 32
+g.inner_command_size = inner_command_size = 29
 command_scrim_points = do ->
   ics = inner_command_size
   [
@@ -112,25 +161,21 @@ command_scrim_points = do ->
     (x: +ics/2, y: -ics/2)
   ]
 
-g.renderCommand = (ctx, what, where, current, rev = false) ->
+g.renderCommandScrim = (ctx, current = false) ->
   cs = command_size
   ics = inner_command_size
 
   ctx.save()
   
-  ctx.lineWidth = 1.5
-  ctx.strokeStyle = 'white'
-
-  ctx.translate(where.x+.5*cs, where.y+.5*cs)
+  setStyle(ctx, lined_style)
 
   ctx.strokeRect( -ics/2, -ics/2, ics, ics )
 
   if current
-    ctx.fillStyle = 'white'
+    setStyle(ctx, filled_style)
     for pt in command_scrim_points
       ctx.fillRect(pt.x-ics*.1, pt.y-ics*.1, ics*.2, ics*.2)
  
-  what.render(ctx, rev)
   ctx.restore()
 
   return
