@@ -47,10 +47,10 @@ class Dwim
       'circle',
       'circle',
       'square',
-      'circle',
+      'diamond',
       'square',
       'circle',
-      'circle'
+      'diamond'
       ])
 
     @mapping = new Mapping( [
@@ -108,7 +108,7 @@ class Dwim
       @moveBotTo(
         @botx + dir.dx,
         @boty + dir.dy,
-        dir.theta
+        dir
       )
 
   execute: () ->
@@ -123,6 +123,15 @@ class Dwim
     else
       @allowed_move = null
 
+  installMapping: (new_command) ->
+    cmd = null
+    switch new_command.command_type
+      when 'move'
+        cmd = new MoveCommand(new_command.dir)
+
+    if cmd?
+      @mapping.installForActive(cmd)
+
   moveBotTo: (x, y, dir) ->
     console.log('want ' +x+','+y)
     # check borders
@@ -134,12 +143,11 @@ class Dwim
       if @allowed_move.x != x or @allowed_move.y != y
         return false
     else
-      # need to do stuff here with filling in the mapping
-      true
+      @installMapping((command_type: 'move', dir: dir))
 
     @botx = x
     @boty = y
-    @botdir = dir
+    @botdir = dir.theta
 
     @pc +=1
     @execute()
@@ -188,6 +196,12 @@ class Mapping
         return @commands[idx]
     else
       return null
+
+  installForActive: (cmd) ->
+    idx = @symbol_names.indexOf(@active)
+    if idx == -1
+      return null
+    @commands[idx] = cmd
 
   render: (ctx) ->
     ocs = g.outer_command_size
