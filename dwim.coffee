@@ -58,7 +58,7 @@ parseRanges = (ranges_string) ->
   point_list
 
 class Dwim
-  constructor: (@cnv) ->
+  constructor: (@cnv, @div) ->
     @ctx = @cnv.getContext('2d')
     @W = @cnv.width
     @H = @cnv.height
@@ -83,14 +83,6 @@ class Dwim
       for y in [0..@Hi]
         @level[x][y] = {type: 'empty'}
 
-    @programs = []
-    for program in level.programs
-      id = @programs.length
-      @programs[id] = program
-
-      for {x:x, y:y} in parseRanges(program.loc)
-        @level[x][y] = {type: 'program', id: id}
-
     @obstacles = []
     for obstacle in level.obstacles
       id = @obstacles.length
@@ -98,6 +90,14 @@ class Dwim
 
       for {x:x, y:y} in parseRanges(obstacle)
         @level[x][y] = {type: 'obstacle', id: id}
+
+    @programs = []
+    for program in level.programs
+      id = @programs.length
+      @programs[id] = program
+
+      for {x:x, y:y} in parseRanges(program.loc)
+        @level[x][y] = {type: 'program', id: id}
 
     @available_mappings = level.available_mappings
 
@@ -109,11 +109,19 @@ class Dwim
     @startRenderer()
     @startInput()
 
+    @updateProgram()
+
   startRenderer: ->
     requestAnimationFrame(@renderCB)
 
   startInput: ->
     registerKeyFunction(@keyboardCB)
+
+  setStatus: (status) ->
+    @div.innerHTML = status
+
+  setError: (error) ->
+    @setStatus('<span class="error">' + error + '</span>')
 
   renderCB: =>
     g.clear(@ctx, @W, @H)
@@ -186,7 +194,9 @@ class Dwim
   keyboardCB: (key) =>
     if key of keymap
       dir = keymap[key]
-      @requestBotMove( dir )
+      @requestBotMove(dir)
+    if key == '<return>'
+      @doWhatMustBeDone()
 
   renderProgramCell: (x, y) ->
     cs = g.cell_size
@@ -256,6 +266,9 @@ class Dwim
 
     return
 
+  doWhatMustBeDone: () ->
+    @execute(@translateInstruction(@currentInstruction()))
+
   currentInstruction: () ->
     return @active_program.code.charAt(@pc)
 
@@ -266,6 +279,8 @@ class Dwim
     ra = requested_action
     if not @active_program?
       return false
+    if ra.type == 'blank'
+      return false
 
     action = @translateInstruction(@currentInstruction())
 
@@ -275,8 +290,7 @@ class Dwim
 
     switch action.type
       when 'move'
-        if ra.dir.dx + @botx == @allowed_move.x and
-           ra.dir.dy + @boty == @allowed_move.y
+        if @isMoveAllowed(ra.dir.dx + @botx, ra.dir.dy + @boty)
           @botx = @allowed_move.x
           @boty = @allowed_move.y
           @botdir = ra.dir.theta
@@ -317,8 +331,24 @@ class Dwim
           @pc = 0
 
     @updateAllowedMove()
-    #@showExecutionStatus()
+    @showExecutionStatus()
     return
+
+  showExecutionStatus: () ->
+    if @active_program?
+      action = @translateInstruction(@currentInstruction())
+      switch action.type
+        when 'move'
+          if not @isMoveAllowed(action.dir.dx + @botx, action.dir.dy + @boty)
+            @setError('No valid move')
+          else
+            @setStatus('Running Program, Input: &lt;enter&gt; to move')
+        when 'mapping'
+          @setStatus('Running Program, Input: &lt;enter&gt; to switch mapping')
+        when 'blank'
+          @setStatus('Need a new mapping, Input: any direction, &quot;m&quot; to switch mapping')
+    else
+      @setStatus('Free Running, Input: any direction')
 
   installMapping: (mapping, action, instruction) ->
     new_action = null
