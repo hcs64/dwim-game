@@ -35,7 +35,7 @@ instruction_names =
   d: 'diamond'
   h: 'hex'
 
-board_start = {x: 70, y: 120}
+board_start = {x: 70, y: 164}
 program_start = {x: 20, y: 20}
 mapping_start = {x: 70, y: 10}
 
@@ -131,8 +131,6 @@ class Dwim
     @ctx.save()
     @ctx.translate(board_start.x, board_start.y)
 
-    g.border(@ctx, @Wi*g.cell_size-1, @Hi*g.cell_size-1)
-
     for x in [0...@Wi]
       for y in [0...@Hi]
         switch @level[x][y].type
@@ -152,6 +150,9 @@ class Dwim
       render: g.renderBot
 
     bot.render(@ctx)
+
+    @ctx.translate(-.5,-.5)
+    g.border(@ctx, @Wi*g.cell_size, @Hi*g.cell_size)
 
     @ctx.restore()
 

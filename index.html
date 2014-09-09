@@ -29,13 +29,12 @@ span.error {
 <canvas width="640" height="480" id="level"></canvas>
 
 <script>
-var dwim = new Dwim(
-  document.getElementById('level'),
-  document.getElementById('status')
-  );
-dwim.start({
-  startpos: {x: 0, y:5},
-  exitpos: {x: 9, y:9},
+
+levels = {
+// b, testing
+b: {
+  startpos: {x: 0, y: 5},
+  exitpos: {x: 9, y: 9},
   dims: {w: 10, h: 10},
   programs: [
     {code: 'ccdcc',
@@ -45,8 +44,40 @@ dwim.start({
     '2-7,0-3 3-6,4-6 2-7,7-9'
   ],
   available_mappings: [ ],
-})
+},
+// a, testing
+a: {
+  dims: {w: 10, h: 8},
+  startpos: {x: 0, y: 0},
+  exitpos: {x:0, y: 5},
+  programs: [
+    {code: 'ccddsddccc',
+     loc: '3-5,0 5,1-2 4,2-4 5-6,4'},
+    {code: 'hdsssss',
+     loc: '7,5-7 3-6,6'},
+  ],
+  obstacles: [
+    '0-5,2 5-6,5-6 3-6,0-8'
+  ],
+  available_mappings: []
+}
+};
 
+var dwim = new Dwim(
+  document.getElementById('level'),
+  document.getElementById('status')
+  );
+
+level_id = window.location.hash;
+if (level_id !== '0' && !level_id) {
+  level_id = 'a';
+} else {
+  level_id = level_id.substr(1)
+}
+
+console.log('start level ' + level_id)
+
+dwim.start(levels[level_id]);
 
 </script>
 </body>
