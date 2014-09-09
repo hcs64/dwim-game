@@ -99,6 +99,8 @@ class Dwim
       for {x:x, y:y} in parseRanges(program.loc)
         @level[x][y] = {type: 'program', id: id}
 
+    @level[level.exitpos.x][level.exitpos.y] = {type: 'exit'}
+
     @available_mappings = level.available_mappings
 
     @active_program = null
@@ -140,6 +142,8 @@ class Dwim
             @renderProgramCell(x, y)
           when 'obstacle'
             @renderObstacleCell(x, y)
+          when 'exit'
+            @renderExitCell(x, y)
 
     bot =
       showxi: @botx
@@ -191,26 +195,28 @@ class Dwim
     if not @stop_render
       requestAnimationFrame(@renderCB)
 
+    if @stop_running
+      @stop_render = true
+
   keyboardCB: (key) =>
+    if @stop_running
+      return
+
     if key of keymap
       dir = keymap[key]
       @requestBotMove(dir)
+
     if key == '<return>'
       @doWhatMustBeDone()
 
-  renderProgramCell: (x, y) ->
-    cs = g.cell_size
-    @ctx.save()
-    @ctx.fillStyle = 'blue'
-    @ctx.fillRect(x*cs, y*cs, cs, cs)
-    @ctx.restore()
+    return
 
+  renderProgramCell: (x, y) ->
+    g.renderProgramCell(@ctx, x, y)
   renderObstacleCell: (x, y) ->
-    cs = g.cell_size
-    @ctx.save()
-    @ctx.fillStyle = 'white'
-    @ctx.fillRect(x*cs, y*cs, cs, cs)
-    @ctx.restore()
+    g.renderObstacleCell(@ctx, x, y)
+  renderExitCell: (x, y) ->
+    g.renderExitCell(@ctx, x, y)
 
   updateAllowedMove: () ->
     if not @active_program?
@@ -329,6 +335,10 @@ class Dwim
           @active_program = @programs[cell.id]
           @active_mapping = @mappings[0] # questionable
           @pc = 0
+    if cell.type == 'exit'
+      @setStatus('Complete!')
+      @stop_running = true
+      return
 
     @updateAllowedMove()
     @showExecutionStatus()

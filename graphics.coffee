@@ -9,24 +9,22 @@ lined_style = stroke: 'white', width: 1.5, fill: 'black'
 thick_lined_style = stroke: 'white', width: 2.5, fill: 'black'
 pixlined_style = stroke: 'white', width: 1, fill: 'black'
 filled_style = fill: 'white'
+exit_text_style =
+  font: '12px monospace', fill: 'white', align: 'center', baseline: 'middle'
+obstacle_cell_style = fill: 'white'
+program_cell_style = fill: 'blue'
 
 g.thick_lined_style = thick_lined_style
 g.lined_style  = lined_style
 bot_style = lined_style
-
-light_link_style = stroke: 'white', width: .5
-node_text_style = fill: 'white', font: '16px monospace'
-node_text_error_style = fill: 'red', font: '16px monospace'
-node_text_spacing = 18
-menu_text_style = fill: 'white', font: '16px sans'
-menu_text_invert_style = fill: 'black', font: '16px sans'
-menu_text_spacing = 18
 
 g.setStyle = setStyle = (ctx, s) ->
   ctx.fillStyle   = s.fill   if s.fill
   ctx.strokeStyle = s.stroke if s.stroke
   ctx.lineWidth   = s.width  if s.width
   ctx.font        = s.font   if s.font
+  ctx.textAlign   = s.align  if s.align
+  ctx.textBaseline = s.baseline if s.baseline
 
 g.clear = (ctx, width, height) ->
   ctx.save()
@@ -99,7 +97,7 @@ g.renderMine = (ctx) ->
     ctx.stroke()
 
     return
- 
+
 g.renderArrow  = (ctx, dir, size) ->
   as = size*.75  # arrow size
   ahs = size*.2 # arrowhead size
@@ -193,6 +191,27 @@ g.renderCommandScrim = (ctx, current = false) ->
 
   return
 
+g.renderProgramCell = (ctx, x, y) ->
+  cs = command_size
+  ctx.save()
+  setStyle(ctx, program_cell_style)
+  ctx.fillRect(x*cs, y*cs, cs, cs)
+  ctx.restore()
+
+g.renderObstacleCell = (ctx, x, y) ->
+  cs = command_size
+  ctx.save()
+  setStyle(ctx, obstacle_cell_style)
+  ctx.fillRect(x*cs, y*cs, cs, cs)
+  ctx.restore()
+
+g.renderExitCell = (ctx, x, y) ->
+  cs = command_size
+  setStyle(ctx, exit_text_style)
+  ctx.fillText("exit", (x+.5)*cs, (y+.5)*cs)
+  setStyle(ctx, lined_style)
+  ctx.strokeRect(x*cs, y*cs, cs, cs)
+ 
 # from around every corner
 digit_graphics = [
   # 0
