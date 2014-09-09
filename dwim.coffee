@@ -27,13 +27,17 @@ reverseDir = (dir) ->
     when RIGHT
       return LEFT
 
+g = window.dwim_graphics
+
 instruction_names =
   s: 'square'
   c: 'circle'
   d: 'diamond'
   h: 'hex'
 
-g = window.dwim_graphics
+board_start = {x: 120, y: 120}
+program_start = {x: 20, y: 20}
+mapping_start = {x: 70, y: 20}
 
 parseRanges = (ranges_string) ->
   point_list = []
@@ -69,8 +73,8 @@ class Dwim
 
     @Wi = level.dims.w
     @Hi = level.dims.h
-    @cnv.width  = @W = @Wi * g.cell_size
-    @cnv.height = @H = @Hi * g.cell_size
+    @cnv.width  = @W = board_start.x + @Wi * g.cell_size
+    @cnv.height = @H = board_start.y + @Hi * g.cell_size
     @ctx = @cnv.getContext('2d')
 
     @level = []
@@ -113,7 +117,11 @@ class Dwim
 
   renderCB: =>
     g.clear(@ctx, @W, @H)
-    g.border(@ctx, @W, @H)
+
+    @ctx.save()
+    @ctx.translate(board_start.x, board_start.y)
+
+    g.border(@ctx, @Wi*g.cell_size-1, @Hi*g.cell_size-1)
 
     for x in [0...@Wi]
       for y in [0...@Hi]
@@ -132,6 +140,45 @@ class Dwim
       render: g.renderBot
 
     bot.render(@ctx)
+
+    @ctx.restore()
+
+    if @active_program?
+      @ctx.save()
+      @ctx.translate(program_start.x, program_start.y)
+
+
+      code = @active_program.code
+      cs = g.command_size
+      ics = g.inner_command_size
+
+      @ctx.save()
+      g.setStyle(@ctx, g.thick_lined_style)
+
+      @ctx.translate(cs/2, cs/2 - @pc * cs)
+
+      for idx in [0...code.length]
+        g.renderShape(@ctx, instruction_names[code[idx]], ics/2)
+
+        @ctx.translate(0, cs)
+
+      @ctx.restore()
+
+      @ctx.save()
+      g.setStyle(@ctx, g.lined_style)
+      @ctx.strokeRect(0, 0, cs, cs)
+      @ctx.restore()
+
+      @ctx.restore() # end rendering active program
+
+    if @active_mapping?
+        @ctx.save()
+        @ctx.translate(mapping_start.x, mapping_start.y)
+
+        @active_mapping.render(@ctx, @currentInstruction())
+
+        @ctx.restore()
+
 
     if not @stop_render
       requestAnimationFrame(@renderCB)
@@ -249,6 +296,7 @@ class Dwim
 
     @pc += 1
     if @pc == @active_program.code.length
+      # TODO: need to eject from program region if still in one
       @active_program = null
       @active_mapping = null # questionable
 
@@ -282,34 +330,6 @@ class Dwim
 
     mapping.setMapping(instruction, new_action)
 
-class Program
-  constructor: (@instructions) ->
-
-  render: (ctx, t = 0) ->
-    cs = g.command_size
-
-    ctx.save()
-    g.setStyle(ctx, g.thick_lined_style)
-
-    if @active?
-      ctx.translate(cs/2, cs/2 - (@active+t) * cs)
-    else
-      ctx.translate(cs/2, cs/2)
-
-    for instruction in @instructions
-      g.renderShape(ctx, instruction, g.inner_command_size/2)
-
-      ctx.translate(0, cs)
-
-    ctx.restore()
-
-    if @active?
-      ctx.save()
-      g.setStyle(ctx, g.lined_style)
-      ctx.strokeRect(0, 0, cs, cs)
-      ctx.restore()
-
-
 class Mapping
   constructor: () ->
     @instructions = []
@@ -331,7 +351,7 @@ class Mapping
 
     @commands[idx] = command
 
-  render: (ctx) ->
+  render: (ctx, current_instruction) ->
     ocs = g.outer_command_size
     len = @instructions.length
 
