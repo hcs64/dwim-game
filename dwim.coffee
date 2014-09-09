@@ -98,6 +98,12 @@ class Dwim
     @ctx.translate(230,30)
     @mapping.render(@ctx)
     @ctx.restore()
+
+    @ctx.save()
+    @ctx.translate(10.5,10.5)
+    g.setStyle(@ctx, g.lined_style)
+    g.renderNumber(@ctx, 1234567890)
+    @ctx.restore()
     
     if not @stop_render
       requestAnimationFrame(@renderCB)

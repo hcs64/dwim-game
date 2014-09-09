@@ -183,32 +183,55 @@ g.renderCommandScrim = (ctx, current = false) ->
 
   return
 
-# control panel button graphics
-controls_start = (x: 10, y: 10)
-control_size = 66
-inner_control_size = 60
-control_bevel = 6
-renderControlPanel = (ctx) ->
-  ctx.translate(controls_start.x, controls_start.y)
+# from around every corner
+digit_graphics = [
+  # 0
+  [ [[0,0],[4,0],[4,4],[0,4],[0,0]] ],
+  # 1
+  [ [[2,0],[2,4]] ],
+  # 2
+  [ [[0,0],[4,0],[4,2],[0,2],[0,4],[4,4]] ],
+  # 3
+  [ [[0,0],[4,0],[4,4],[0,4]],
+    [[0,2],[4,2]] ],
+  # 4
+  [ [[0,0],[0,2],[4,2]],
+    [[4,0],[4,4]] ],
+  # 5
+  [ [[4,0],[0,0],[0,2],[4,2],[4,4],[0,4]] ],
+  # 6
+  [ [[4,0],[0,0],[0,4],[4,4],[4,2],[0,2]] ],
+  # 7
+  [ [[0,0],[4,0],[4,4]] ],
+  # 8
+  [ [[0,0],[0,4],[4,4],[4,0],[0,0]],
+    [[0,2],[4,2]] ],
+  # 9
+  [ [[0,4],[4,4],[4,0],[0,0],[0,2],[4,2]] ]
+]
 
-  for b, i in @buttons
-    ctx.save()
-    
-    ctx.lineWidth = 1.5
-    if i != @selected_button
-      ctx.strokeStyle = 'white'
-      ctx.fillStyle = 'black'
-    else
-      ctx.strokeStyle = 'black'
-      ctx.fillStyle = 'white'
+g.renderNumber = renderNumber = (ctx, n, scale = 4) ->
+  s = []
+  if n < 0 or n != Math.floor(n)
+    console.log("tried to render #{number}, only nonnegative integers supported")
+  if n == 0
+    s = [0]
+  while n > 0
+    s[s.length] = n % 10
+    n = Math.floor(n / 10)
 
-    renderButtonScrim(ctx)
+  ctx.save()
 
-    ctx.translate(inner_control_size/2,inner_control_size/2)
-    b.render(ctx)
-    ctx.restore()
-    ctx.translate(0,control_size)
+  for i in [s.length-1..0] by -1
+    ctx.beginPath()
+    for line in digit_graphics[s[i]]
+      ctx.moveTo(line[0][0]*scale, line[0][1]*scale)
+      for point in line[1..]
+        ctx.lineTo(point[0]*scale, point[1]*scale)
+    ctx.stroke()
 
-  return
+    ctx.translate(5*scale, 0)
+
+  ctx.restore()
 
 window.dwim_graphics = g
