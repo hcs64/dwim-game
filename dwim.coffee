@@ -336,7 +336,8 @@ class Dwim
 
   showExecutionStatus: () ->
     if @active_program?
-      action = @translateInstruction(@currentInstruction())
+      instruction = @currentInstruction()
+      action = @translateInstruction(instruction)
       switch action.type
         when 'move'
           if not @isMoveAllowed(action.dir.dx + @botx, action.dir.dy + @boty)
@@ -346,7 +347,13 @@ class Dwim
         when 'mapping'
           @setStatus('Running Program, Input: &lt;enter&gt; to switch mapping')
         when 'blank'
-          @setStatus('Need a new mapping, Input: any direction, &quot;m&quot; to switch mapping')
+          @setStatus(
+            "Need an action for #{instruction_names[instruction]},
+            Input: any direction" +
+              (if @available_mappings.length > 0
+                 ', &quot;m&quot; to switch mapping'
+               else
+                 ''))
     else
       @setStatus('Free Running, Input: any direction')
 
