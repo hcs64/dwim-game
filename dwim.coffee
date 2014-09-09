@@ -27,6 +27,12 @@ reverseDir = (dir) ->
     when RIGHT
       return LEFT
 
+instruction_names =
+  s: 'square'
+  c: 'circle'
+  d: 'diamond'
+  h: 'hex'
+
 g = window.dwim_graphics
 
 parseRanges = (ranges_string) ->
@@ -92,7 +98,9 @@ class Dwim
     @available_mappings = level.available_mappings
 
     @active_program = null
-    @mappings = []
+    @allowed_move = null
+    @mappings = [ new Mapping() ]
+    @active_mapping = null
     
     @startRenderer()
     @startInput()
@@ -106,7 +114,6 @@ class Dwim
   renderCB: =>
     g.clear(@ctx, @W, @H)
     g.border(@ctx, @W, @H)
-
 
     for x in [0...@Wi]
       for y in [0...@Hi]
@@ -132,11 +139,7 @@ class Dwim
   keyboardCB: (key) =>
     if key of keymap
       dir = keymap[key]
-      @moveBotTo(
-        @botx + dir.dx,
-        @boty + dir.dy,
-        dir
-      )
+      @requestBotMove( dir )
 
   renderProgramCell: (x, y) ->
     cs = g.cell_size
@@ -152,49 +155,132 @@ class Dwim
     @ctx.fillRect(x*cs, y*cs, cs, cs)
     @ctx.restore()
 
-  execute: () ->
-    @program.active = @pc
-    @mapping.active = @program.instructions[@pc]
+  updateAllowedMove: () ->
+    if not @active_program?
+      @allowed_move = null
+      return
 
-    next_command = @mapping.mapActive()
-    console.log('active instr = ' + @mapping.active)
+    # set, but invalid, no move possible
+    @allowed_move = {x:-1,y:-1}
 
-    if next_command?
-      @allowed_move = next_command.movePoint((x: @botx, y: @boty))
-    else
+    action = @translateInstruction(@currentInstruction())
+    if action.type == 'move'
+      @allowed_move = x: @botx + action.dir.dx, y: @boty + action.dir.dy
+    if action.type == 'blank'
       @allowed_move = null
 
-  installMapping: (new_command) ->
-    cmd = null
-    switch new_command.command_type
-      when 'move'
-        cmd = new MoveCommand(new_command.dir)
+    # otherwise movement is not possible
+    return
 
-    if cmd?
-      @mapping.installForActive(cmd)
-
-  moveBotTo: (x, y, dir) ->
-    console.log('want ' +x+','+y)
+  isMoveAllowed: (x, y) ->
     # check borders
     if x < 0 or y < 0 or x >= @Wi or y >= @Hi
+      return false
+
+    if @level[x][y].type == 'obstacle'
       return false
 
     if @allowed_move?
       console.log('allowed ' +@allowed_move.x+','+@allowed_move.y)
       if @allowed_move.x != x or @allowed_move.y != y
         return false
-    else
-      @installMapping((command_type: 'move', dir: dir))
-
-    @botx = x
-    @boty = y
-    @botdir = dir.theta
-
-    @pc +=1
-    @execute()
 
     return true
 
+  requestBotMove: (dir) ->
+    x = @botx + dir.dx
+    y = @boty + dir.dy
+
+    console.log('want ' +x+','+y)
+    
+    if @isMoveAllowed(x,y)
+      if @active_program?
+        @execute({type: 'move', dir: dir})
+      else
+        # free movement
+        @botx = x
+        @boty = y
+        @botdir = dir.theta
+
+        @updateProgram()
+    else if not @active_program?
+      # at least turn in the desired direction
+      @botdir = dir.theta
+
+    return
+
+  currentInstruction: () ->
+    return @active_program.code.charAt(@pc)
+
+  translateInstruction: (instruction) ->
+    return @active_mapping.mapCode(instruction)
+
+  execute: (requested_action) ->
+    ra = requested_action
+    if not @active_program?
+      return false
+
+    action = @translateInstruction(@currentInstruction())
+
+    # check that requested action matches action to execute
+    if action.type != 'blank' and action.type != ra.type
+      return false
+
+    switch action.type
+      when 'move'
+        if ra.dir.dx + @botx == @allowed_move.x and
+           ra.dir.dy + @boty == @allowed_move.y
+          @botx = @allowed_move.x
+          @boty = @allowed_move.y
+          @botdir = ra.dir.theta
+        else
+          return false
+      when 'mapping'
+        if ra.id == action.id
+          @active_mapping = @mappings[action.id]
+        else
+          return false
+      when 'blank'
+        @installMapping(@active_mapping, requested_action,
+                        @currentInstruction())
+        @updateProgram()
+        # recursively execute the command
+        return @execute(requested_action)
+
+    @pc += 1
+    if @pc == @active_program.code.length
+      @active_program = null
+      @active_mapping = null # questionable
+
+    @updateProgram()
+
+    return true
+
+  updateProgram: () ->
+    cell = @level[@botx][@boty]
+    if cell.type == 'program'
+      if @active_program? and
+           @active_program.code == @programs[cell.id].code
+          true # no change
+        else
+          # TODO: notify user
+          @active_program = @programs[cell.id]
+          @active_mapping = @mappings[0] # questionable
+          @pc = 0
+
+    @updateAllowedMove()
+    #@showExecutionStatus()
+    return
+
+  installMapping: (mapping, action, instruction) ->
+    new_action = null
+
+    switch action.type
+      when 'move'
+        console.log('install')
+        new_action = new MoveCommand(action.dir)
+
+    mapping.setMapping(instruction, new_action)
 
 class Program
   constructor: (@instructions) ->
@@ -226,27 +312,28 @@ class Program
 
 class Mapping
   constructor: () ->
-    @symbol_names = []
+    @instructions = []
     @commands = []
 
-  mapActive: () ->
-    if @active?
-      idx = @symbol_names.indexOf(@active)
-      if idx == -1
-        return null
-      else
-        return @commands[idx]
-    else
-      return null
+  mapCode: (instruction) ->
+    idx = @instructions.indexOf(instruction)
 
-  installForActive: (cmd) ->
-    idx = @symbol_names.indexOf(@active)
     if idx == -1
-      return null
-    @commands[idx] = cmd
+      return {type: 'blank'}
+    else
+      return @commands[idx]
+
+  setMapping: (instruction, command) ->
+    idx = @instructions.indexOf(instruction)
+    if idx == -1
+      idx = @instructions.length
+      @instructions[idx] = instruction
+
+    @commands[idx] = command
 
   render: (ctx) ->
     ocs = g.outer_command_size
+    len = @instructions.length
 
     ctx.save()
     g.setStyle(ctx, g.lined_style)
@@ -255,19 +342,19 @@ class Mapping
     ctx.beginPath()
     ctx.moveTo(0,0)
     ctx.lineTo(ocs * 2, 0)
-    ctx.lineTo(ocs * 2, ocs * @symbol_names.length)
-    ctx.lineTo(0, ocs * @symbol_names.length)
+    ctx.lineTo(ocs * 2, ocs * len)
+    ctx.lineTo(0, ocs * len)
     ctx.closePath()
     ctx.stroke()
 
     # vertical divider
     ctx.beginPath()
     ctx.moveTo(ocs, 0)
-    ctx.lineTo(ocs, ocs * @symbol_names.length)
+    ctx.lineTo(ocs, ocs * len)
     ctx.stroke()
 
     # horizontal dividers
-    for idx in [1...@symbol_names.length]
+    for idx in [1...len]
       ctx.beginPath()
       ctx.moveTo(0, ocs * idx)
       ctx.lineTo(ocs * 2, ocs * idx)
@@ -276,14 +363,14 @@ class Mapping
     # symbols
     ctx.save()
     ctx.translate(ocs/2, ocs/2)
-    for name in @symbol_names
-      g.renderShape(ctx, name, g.inner_command_size/2)
+    for char in @instructions
+      g.renderShape(ctx, instruction_names[char], g.inner_command_size/2)
       ctx.translate(0, ocs)
     ctx.restore()
 
     # commands (if present)
     ctx.translate(ocs*3/2, ocs/2)
-    for idx in [0...@symbol_names.length]
+    for idx in [0...len]
       if idx of @commands
         @commands[idx].render(ctx)
       ctx.translate(0, ocs)
@@ -295,15 +382,14 @@ class Mapping
     ctx.restore()
 
 class MoveCommand
-  constructor: (@movedir) ->
+  constructor: (@dir) ->
 
-  movePoint: (pos) ->
-    return x: pos.x + @movedir.dx, y: pos.y + @movedir.dy
+  type: 'move'
 
   render: (ctx) ->
     ctx.save()
     g.setStyle(ctx, g.lined_style)
-    g.renderArrow(ctx, @movedir.theta, g.inner_command_size)
+    g.renderArrow(ctx, @dir.theta, g.inner_command_size)
     ctx.restore()
 
 window.Dwim = Dwim

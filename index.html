@@ -13,7 +13,20 @@
 
 <script>
 var dwim = new Dwim(document.getElementById('level-canvas'));
-dwim.start()
+dwim.start({
+  startpos: {x: 0, y:5},
+  exitpos: {x: 9, y:9},
+  dims: {w: 10, h: 10},
+  programs: [
+    {code: 'ccc',
+     loc: '4-6,5'}
+  ],
+  obstacles: [
+    '3-7,0-3 4-6,4' + ' ' +
+    '3-7,7-9 4-6,6'
+  ],
+  available_mappings: [ 0 ],
+})
 
 
 </script>
