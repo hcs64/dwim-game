@@ -35,9 +35,9 @@ instruction_names =
   d: 'diamond'
   h: 'hex'
 
-board_start = {x: 120, y: 120}
+board_start = {x: 70, y: 120}
 program_start = {x: 20, y: 20}
-mapping_start = {x: 70, y: 20}
+mapping_start = {x: 70, y: 10}
 
 parseRanges = (ranges_string) ->
   point_list = []
@@ -353,7 +353,13 @@ class Mapping
 
   render: (ctx, current_instruction) ->
     ocs = g.outer_command_size
-    len = @instructions.length
+    ics = g.inner_command_size
+
+    temp_inst = @instructions
+    if current_instruction? and not (current_instruction in @instructions)
+      temp_inst = @instructions.concat([current_instruction])
+
+    len = temp_inst.length
 
     ctx.save()
     g.setStyle(ctx, g.lined_style)
@@ -383,8 +389,8 @@ class Mapping
     # symbols
     ctx.save()
     ctx.translate(ocs/2, ocs/2)
-    for char in @instructions
-      g.renderShape(ctx, instruction_names[char], g.inner_command_size/2)
+    for char in temp_inst
+      g.renderShape(ctx, instruction_names[char], ics/2)
       ctx.translate(0, ocs)
     ctx.restore()
 
@@ -393,13 +399,23 @@ class Mapping
     for idx in [0...len]
       if idx of @commands
         @commands[idx].render(ctx)
+      else
+        ctx.save()
+        g.setStyle(ctx, g.lined_style)
+        g.renderShape(ctx, 'question', ics/2)
+        ctx.restore()
+
       ctx.translate(0, ocs)
 
     ctx.restore()
 
-    ctx.save()
-    g.setStyle(ctx, g.lined_style)
-    ctx.restore()
+    if current_instruction?
+      idx = temp_inst.indexOf(current_instruction)
+
+      ctx.save()
+      g.setStyle(ctx, g.lined_style)
+      ctx.strokeRect((ocs-ics)/2, (ocs-ics)/2 + ocs*idx, ocs*2-(ocs-ics), ics)
+      ctx.restore()
 
 class MoveCommand
   constructor: (@dir) ->

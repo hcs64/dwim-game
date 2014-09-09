@@ -147,7 +147,17 @@ g.renderShape = (ctx, shape, radius) ->
       ctx.lineTo(+r2,+r)
       ctx.lineTo(-r2,+r)
       ctx.closePath()
-
+    when 'question'
+      r = radius*.75
+      ctx.moveTo(-r*.75, -.5*r)
+      ctx.lineTo(-r*.75, -r)
+      ctx.lineTo(+r*.75, -r)
+      ctx.lineTo(+r*.75, 0)
+      ctx.lineTo(0, 0)
+      ctx.lineTo(0, .625*r)
+      ctx.moveTo(0, .75*r)
+      ctx.lineTo(0, r)
+ 
   ctx.stroke()
   return
 
