@@ -29,6 +29,24 @@ reverseDir = (dir) ->
 
 g = window.dwim_graphics
 
+parseRanges = (ranges_string) ->
+  point_list = []
+
+  for range in ranges_string.split(' ')
+    [rangex, rangey] =
+      for d in range.split(',')
+        if d.indexOf('-') == -1
+          i = parseInt(d, 10)
+          [i, i]
+        else
+          i = d.split('-')
+          [parseInt(i[0], 10), parseInt(i[1], 10)]
+    for x in [rangex[0]..rangex[1]]
+      for y in [rangey[0]..rangey[1]]
+        point_list.push({x:x,y:y})
+
+  point_list
+
 class Dwim
   constructor: (@cnv) ->
     @ctx = @cnv.getContext('2d')
@@ -38,36 +56,44 @@ class Dwim
     @Wi = Math.floor(@W / g.cell_size)
     @Hi = Math.floor(@H / g.cell_size)
   
-  start: ->
-    @botx = 5
-    @boty = 5
-    @botdir = UP.theta
+  start: (level) ->
+    @botx = level.startpos.x
+    @boty = level.startpos.y
+    @botdir = RIGHT.theta
 
-    @program = new Program( [
-      'circle',
-      'circle',
-      'square',
-      'diamond',
-      'square',
-      'circle',
-      'diamond'
-      ])
+    @Wi = level.dims.w
+    @Hi = level.dims.h
+    @cnv.width  = @W = @Wi * g.cell_size
+    @cnv.height = @H = @Hi * g.cell_size
+    @ctx = @cnv.getContext('2d')
 
-    @mapping = new Mapping( [
-      'circle',
-      'square'
-      'diamond'
-      'hex'
-      ])
+    @level = []
+    for x in [0...@Wi]
+      @level[x] = []
+      for y in [0..@Hi]
+        @level[x][y] = {type: 'empty'}
 
-    @mapping.commands[0] = new MoveCommand(LEFT)
-    @mapping.commands[1] = new MoveCommand(UP)
-    #@mapping.commands[2] = new MoveCommand(DOWN)
-    @mapping.commands[3] = new MoveCommand(RIGHT)
+    @programs = []
+    for program in level.programs
+      id = @programs.length
+      @programs[id] = program
 
-    @pc = 0
-    @execute()
+      for {x:x, y:y} in parseRanges(program.loc)
+        @level[x][y] = {type: 'program', id: id}
 
+    @obstacles = []
+    for obstacle in level.obstacles
+      id = @obstacles.length
+      @obstacles[id] = obstacle
+
+      for {x:x, y:y} in parseRanges(obstacle)
+        @level[x][y] = {type: 'obstacle', id: id}
+
+    @available_mappings = level.available_mappings
+
+    @active_program = null
+    @mappings = []
+    
     @startRenderer()
     @startInput()
 
@@ -81,6 +107,17 @@ class Dwim
     g.clear(@ctx, @W, @H)
     g.border(@ctx, @W, @H)
 
+
+    for x in [0...@Wi]
+      for y in [0...@Hi]
+        switch @level[x][y].type
+          when 'empty'
+            true
+          when 'program'
+            @renderProgramCell(x, y)
+          when 'obstacle'
+            @renderObstacleCell(x, y)
+
     bot =
       showxi: @botx
       showyi: @boty
@@ -89,22 +126,6 @@ class Dwim
 
     bot.render(@ctx)
 
-    @ctx.save()
-    @ctx.translate(30,30)
-    @program.render(@ctx)
-    @ctx.restore()
-
-    @ctx.save()
-    @ctx.translate(230,30)
-    @mapping.render(@ctx)
-    @ctx.restore()
-
-    @ctx.save()
-    @ctx.translate(10.5,10.5)
-    g.setStyle(@ctx, g.lined_style)
-    g.renderNumber(@ctx, 1234567890)
-    @ctx.restore()
-    
     if not @stop_render
       requestAnimationFrame(@renderCB)
 
@@ -116,6 +137,20 @@ class Dwim
         @boty + dir.dy,
         dir
       )
+
+  renderProgramCell: (x, y) ->
+    cs = g.cell_size
+    @ctx.save()
+    @ctx.fillStyle = 'blue'
+    @ctx.fillRect(x*cs, y*cs, cs, cs)
+    @ctx.restore()
+
+  renderObstacleCell: (x, y) ->
+    cs = g.cell_size
+    @ctx.save()
+    @ctx.fillStyle = 'white'
+    @ctx.fillRect(x*cs, y*cs, cs, cs)
+    @ctx.restore()
 
   execute: () ->
     @program.active = @pc
@@ -190,7 +225,8 @@ class Program
 
 
 class Mapping
-  constructor: (@symbol_names) ->
+  constructor: () ->
+    @symbol_names = []
     @commands = []
 
   mapActive: () ->
