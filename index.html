@@ -40,7 +40,6 @@ a {
 <script>
 
 levels = {
-// b, testing
 b: {
   startpos: {x: 0, y: 5},
   exitpos: {x: 9, y: 9},
@@ -53,33 +52,6 @@ b: {
     '2-7,0-3 3-6,4-6 2-7,7-9'
   ],
   available_mappings: [ ],
-},
-// a, testing
-a: {
-  dims: {w: 10, h: 8},
-  startpos: {x: 0, y: 0},
-  exitpos: {x: 0, y: 5},
-  programs: [
-    {code: 'ccddsddccc',
-     loc: '3-5,0 5,1-2 4,2-4 5-6,4'},
-    {code: 'hdsssss',
-     loc: '7,5-7 3-6,6'},
-  ],
-  obstacles: [
-    '0-5,2 5-6,5-6 3-6,0-8'
-  ],
-  available_mappings: [],
-  next_level: '0',
-},
-// c, testing
-c: {
-  dims: {w: 10, h: 10},
-  startpos: {x: 0, y: 0},
-  exitpos: {x: 0, y: 5},
-  programs: [{code: 'cc', loc: '1,1'}],
-  obstacles: [],
-  available_mappings: ['1-to-1'],
-  next_level: 'c',
 },
 // 0, intro?
 '0': {
@@ -109,8 +81,44 @@ c: {
     {loc: '2-6,3', code: 'dssss' },
   ],
   available_mappings: [],
-  next_level: 'a',
-}
+  next_level: '2',
+},
+// 2
+'2': {
+  dims: {w: 8, h: 8},
+  startpos: {x: 0, y: 0},
+  exitpos: {x: 7, y: 7},
+  programs: [
+    {code: 'cc', loc: '0-1,1 1,0'},
+    {code: 'ss', loc: '0-3,3 3,0-3'},
+    {code: 'ss', loc: '4-5,6'},
+    {code: 'cc', loc: '6,4-5'},
+    {code: 'c', loc: '7,6'},
+    {code: 's', loc: '6,7'},
+  ],
+  obstacles: [
+    '4-5,4-7 4-7,4-5'
+  ],
+  available_mappings: [],
+  next_level: '3',
+},
+// 3
+'3': {
+  dims: {w: 10, h: 8},
+  startpos: {x: 0, y: 0},
+  exitpos: {x: 0, y: 5},
+  programs: [
+    {code: 'ccddsddccc',
+     loc: '3-5,0 5,1-2 4,2-4 5-6,4'},
+    {code: 'hdsssss',
+     loc: '7,5-7 3-6,6'},
+  ],
+  obstacles: [
+    '0-5,2 5-6,5-6 3-6,0-8'
+  ],
+  available_mappings: [],
+  next_level: '3',
+},
 };
 
 var dwim = new Dwim(
