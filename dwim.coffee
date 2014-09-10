@@ -37,7 +37,9 @@ instruction_names =
 
 board_start = {x: 70, y: 168}
 program_start = {x: 20, y: 32}
-mapping_start = {x: 70, y: 10}
+mapping_start = {x: 90, y: 10}
+menu_start = {x: 190, y: 10}
+menu_width = 140
 
 parseRanges = (ranges_string) ->
   point_list = []
@@ -67,11 +69,15 @@ class Dwim
     @Hi = Math.floor(@H / g.cell_size)
 
     @status_div = [status1, status2]
-  
+
+ 
   start: (level) ->
     @botx = level.startpos.x
     @boty = level.startpos.y
-    @botdir = RIGHT.theta
+    if level.startpos.dir?
+      @botdir = level.startpos.dir.theta
+    else
+      @botdir = RIGHT.theta
 
     @Wi = level.dims.w
     @Hi = level.dims.h
@@ -107,9 +113,10 @@ class Dwim
 
     @active_program = null
     @allowed_move = null
-    @mappings = [ new Mapping() ]
+    @mappings = [ new Mapping(0) ]
     @active_mapping = null
     @next_level_id = level.next_level
+    @mapping_menu = null
     
     @requestRender()
     @startInput()
@@ -123,8 +130,10 @@ class Dwim
     registerKeyFunction(@keyboardCB)
 
   setStatus: (status1, status2) ->
-    @status_div[0].innerHTML = status1
-    @status_div[1].innerHTML = status2
+    if status1?
+      @status_div[0].innerHTML = status1
+    if status2?
+      @status_div[1].innerHTML = status2
 
   setError: (error) ->
     @setStatus('<span class="error">Error</a>',
@@ -151,13 +160,10 @@ class Dwim
           when 'exit'
             @renderExitCell(x, y)
 
-    bot =
-      showxi: @botx
-      showyi: @boty
-      showdir: @botdir
-      render: g.renderBot
-
-    bot.render(@ctx)
+    g.renderBot(@ctx,
+        (@botx+.5)*g.cell_size,
+        (@boty+.5)*g.cell_size,
+        @botdir)
 
     @ctx.translate(-.5,-.5)
     g.border(@ctx, @Wi*g.cell_size, @Hi*g.cell_size)
@@ -200,17 +206,81 @@ class Dwim
 
         @ctx.restore()
 
+    if @mapping_menu?
+      len = @mapping_menu.entries.length
+      # overlay popup menu
+      @ctx.save()
+      @ctx.translate(menu_start.x, menu_start.y)
+      g.setStyle(@ctx, g.lined_style)
+      
+      height = (len+1) * g.menu_text_spacing + 32
+      @ctx.fillRect(0, 0, menu_width, height)
+      @ctx.strokeRect(0, 0, menu_width, height)
+
+      g.setStyle(@ctx, g.menu_text_style)
+
+      # heading
+      @ctx.translate(16,16+g.menu_text_spacing/2)
+      g.setStyle(@ctx, g.menu_text_style)
+      @ctx.fillText('Switch to:', 0, 0)
+      heading_measure = @ctx.measureText('Switch to:')
+      g.setStyle(@ctx, g.lined_style)
+      @ctx.beginPath()
+      @ctx.moveTo(0, g.menu_text_spacing/2-4)
+      @ctx.lineTo(heading_measure.width, g.menu_text_spacing/2-4)
+      @ctx.stroke()
+
+      # menu items
+      g.setStyle(@ctx, g.menu_text_style)
+      for msg, idx in @mapping_menu.entries
+        @ctx.translate(0, g.menu_text_spacing)
+        @ctx.fillText(msg.name, 0, 0)
+
+      # bot indicates selection
+
+      g.renderBot(@ctx, -16,
+        (@mapping_menu.selected-len+1) * g.menu_text_spacing,
+        RIGHT.theta)
+      g.renderBot(@ctx, menu_width-16,
+        (@mapping_menu.selected-len+1) * g.menu_text_spacing,
+        LEFT.theta)
+
+
+      @ctx.restore()
+
+      @setStatus(null, 'Input: up/down to move selection, &lt;enter&gt; to select')
+
   keyboardCB: (key) =>
     @requestRender()
+
     if @stop_running
       return
 
-    if key of keymap
-      dir = keymap[key]
-      @requestBotMove(dir)
+    if @mapping_menu
+      if key of keymap
+        dir = keymap[key]
+        if dir == UP
+          @mapping_menu.selected = Math.max(0, @mapping_menu.selected-1)
+        if dir == DOWN
+          @mapping_menu.selected = Math.min( @mapping_menu.entries.length-1,
+            @mapping_menu.selected+1)
 
-    if key == '<return>'
-      @doWhatMustBeDone()
+      if key == '<return>'
+        @requestMappingChange()
+
+      if key == '<backspace>'
+        @mapping_menu = null
+
+    else
+      if key of keymap
+        dir = keymap[key]
+        @requestBotMove(dir)
+
+      if key == 'm'
+        @showMappingChangeMenu()
+
+      if key == '<return>'
+        @doWhatMustBeDone()
 
     return
 
@@ -257,7 +327,7 @@ class Dwim
     y = @boty + dir.dy
 
     if @isMoveAllowed(x,y)
-      if @active_program? 
+      if @active_program?
         if @isCurrentActionBlank()
           @execute({type: 'move', dir: dir})
       else
@@ -272,6 +342,40 @@ class Dwim
       @botdir = dir.theta
 
     return
+
+  showMappingChangeMenu: () ->
+    if @isCurrentActionBlank() and @available_mappings.length > 0
+      @mapping_menu =
+        selected: 0
+        entries: []
+      
+      for map, idx in @mappings
+        if map != @active_mapping
+          @mapping_menu.entries.push({name: (idx+1)+'', id: idx})
+
+      for mapname, idx in @available_mappings
+        @mapping_menu.entries.push({name: 'new ' + mapname, 'new': true})
+      
+      # self-goto
+      #for map, idx in @mappings
+      #  if map == @active_mapping
+      #    @mapping_menu.entries.push({name: (idx+1)+'', id: idx})
+
+  requestMappingChange: () ->
+
+    entry = @mapping_menu.entries[@mapping_menu.selected]
+    @mapping_menu = null
+
+    if entry['new']
+      next_mapping_id = @mappings.length
+      # TODO: other types of mappings go here
+      next_mapping = new Mapping(@mappings.length)
+      @mappings[next_mapping_id] = next_mapping
+    else
+      next_mapping_id = entry.id
+      next_mapping = @mappings[next_mapping_id]
+
+    @execute({type: 'mapping', id: next_mapping_id})
 
   doWhatMustBeDone: () ->
     @execute(@translateInstruction(@currentInstruction()))
@@ -333,12 +437,12 @@ class Dwim
     if cell.type == 'program'
       if @active_program? and
            @active_program.code == @programs[cell.id].code
-          true # no change
-        else
-          # TODO: notify user
-          @active_program = @programs[cell.id]
-          @active_mapping = @mappings[0] # questionable
-          @pc = 0
+        true # no change
+      else
+        # TODO: notify user
+        @active_program = @programs[cell.id]
+        @active_mapping = @mappings[0] # questionable
+        @pc = 0
     if cell.type == 'exit'
       @nextLevelLink()
       @stop_running = true
@@ -378,13 +482,16 @@ class Dwim
 
     switch action.type
       when 'move'
-        console.log('install')
+        console.log('install move')
         new_action = new MoveCommand(action.dir)
+      when 'mapping'
+        console.log('install mapping')
+        new_action = new MappingCommand(action.id)
 
     mapping.setMapping(instruction, new_action)
 
 class Mapping
-  constructor: () ->
+  constructor: (@id) ->
     @instructions = []
     @commands = []
 
@@ -470,6 +577,14 @@ class Mapping
       ctx.strokeRect((ocs-ics)/2, (ocs-ics)/2 + ocs*idx, ocs*2-(ocs-ics), ics)
       ctx.restore()
 
+    # id
+    ctx.save()
+    ctx.translate(-25,10)
+    g.setStyle(ctx, g.lined_style)
+    g.renderNumber(ctx, @id+1)
+    ctx.restore()
+
+
 class MoveCommand
   constructor: (@dir) ->
 
@@ -481,5 +596,22 @@ class MoveCommand
     g.renderArrow(ctx, @dir.theta, g.inner_command_size)
     ctx.restore()
 
+class MappingCommand
+  constructor: (@id) ->
+
+  type: 'mapping'
+
+  render: (ctx) ->
+    ctx.save()
+    ctx.translate(-8,-8)
+    g.setStyle(ctx, g.lined_style)
+    g.renderNumber(ctx, @id+1)
+    ctx.restore()
+
+Dwim.UP     = UP
+Dwim.DOWN   = DOWN
+Dwim.LEFT   = LEFT
+Dwim.RIGHT  = RIGHT
+ 
 window.Dwim = Dwim
 
