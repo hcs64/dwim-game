@@ -107,13 +107,14 @@ class Dwim
     @allowed_move = null
     @mappings = [ new Mapping() ]
     @active_mapping = null
+    @next_level_id = level.next_level
     
-    @startRenderer()
+    @requestRender()
     @startInput()
 
     @updateProgram()
 
-  startRenderer: ->
+  requestRender: ->
     requestAnimationFrame(@renderCB)
 
   startInput: ->
@@ -124,6 +125,9 @@ class Dwim
 
   setError: (error) ->
     @setStatus('<span class="error">' + error + '</span>')
+
+  nextLevelLink: () ->
+    @setStatus("Completed! <a href=\"?#{@next_level_id}\">Next Level</a>")
 
   renderCB: =>
     g.clear(@ctx, @W, @H)
@@ -192,14 +196,8 @@ class Dwim
 
         @ctx.restore()
 
-
-    if not @stop_render
-      requestAnimationFrame(@renderCB)
-
-    if @stop_running
-      @stop_render = true
-
   keyboardCB: (key) =>
+    @requestRender()
     if @stop_running
       return
 
@@ -337,7 +335,7 @@ class Dwim
           @active_mapping = @mappings[0] # questionable
           @pc = 0
     if cell.type == 'exit'
-      @setStatus('Complete!')
+      @nextLevelLink()
       @stop_running = true
       return
 
