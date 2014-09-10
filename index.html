@@ -12,7 +12,7 @@ body {
   background-color: black;
 }
 
-div#status {
+div.status {
   font-family: monospace;
   color: white;
 }
@@ -21,11 +21,20 @@ span.error {
   color: red;
 }
 
+span.att {
+  color: yellow;
+}
+
+a {
+  color: blue;
+}
+
 </style>
 </head>
 
 <body>
-<div id="status">Not running</div>
+<div class="status" id="status1">Not running</div>
+<div class="status" id="status2"></div>
 <canvas width="640" height="480" id="level"></canvas>
 
 <script>
@@ -96,7 +105,8 @@ a: {
 
 var dwim = new Dwim(
   document.getElementById('level'),
-  document.getElementById('status')
+  document.getElementById('status1'),
+  document.getElementById('status2')
   );
 
 level_id = window.location.search;
