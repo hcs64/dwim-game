@@ -118,13 +118,14 @@ class Dwim
     @next_level_id = level.next_level
     @mapping_menu = null
     
-    @requestRender()
     @startInput()
 
     @updateProgram()
 
+    @requestRender()
+
   requestRender: ->
-    requestAnimationFrame(@renderCB)
+    @renderCB()
 
   startInput: ->
     registerKeyFunction(@keyboardCB)
@@ -251,8 +252,6 @@ class Dwim
       @setStatus(null, 'Input: up/down to move selection, &lt;enter&gt; to select')
 
   keyboardCB: (key) =>
-    @requestRender()
-
     if @stop_running
       return
 
@@ -281,6 +280,8 @@ class Dwim
 
       if key == '<return>'
         @doWhatMustBeDone()
+
+    @requestRender()
 
     return
 
