@@ -33,10 +33,7 @@ a {
 </head>
 
 <body>
-<div class="status" id="status1">Not running</div>
-<div class="status" id="status2"></div>
-<canvas width="640" height="480" id="level"></canvas>
-
+<div id="game1"></div>
 <script>
 (function(){
 
@@ -156,12 +153,6 @@ b: {
 },
 };
 
-var level_cnv = document.getElementById('level');
-var status1_div = document.getElementById('status1');
-var status2_div = document.getElementById('status2');
-
-var game = new Dwim( level_cnv, status1_div, status2_div );
-
 var level_id = window.location.search;
 if (level_id !== '0' && !level_id) {
   level_id = '0';
@@ -169,14 +160,11 @@ if (level_id !== '0' && !level_id) {
   level_id = level_id.substr(1);
 }
 
-if (level_id === 'end') {
-  status1_div.innerHTML = "That's all for now";
-  status2_div.innerHTML = "Thanks for playing!";
-} else {
-  console.log('start level ' + level_id);
+var game = new Dwim(
+  document.getElementById('game1')
+);
 
-  game.start(levels[level_id]);
-}
+game.start(levels, level_id);
 
 })();
 </script>

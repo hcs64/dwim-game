@@ -60,18 +60,28 @@ parseRanges = (ranges_string) ->
   point_list
 
 class Dwim
-  constructor: (@cnv, status1, status2) ->
-    @ctx = @cnv.getContext('2d')
-    @W = @cnv.width
-    @H = @cnv.height
+  constructor: (@parent_div) ->
 
-    @Wi = Math.floor(@W / g.cell_size)
-    @Hi = Math.floor(@H / g.cell_size)
-
-    @status_div = [status1, status2]
-
+    @status_div = [
+      document.createElement('div'),
+      document.createElement('div')
+    ]
+    @cnv = document.createElement('canvas')
+    @status_div[0].className = 'status'
+    @status_div[1].className = 'status'
+    @parent_div.appendChild(@status_div[0])
+    @parent_div.appendChild(@status_div[1])
  
-  start: (level) ->
+  start: (levels, level_id) ->
+    if level_id == 'end'
+      @status_div[0].innerHTML = "That's all for now"
+      @status_div[1].innerHTML = "Thanks for playing! -hcs"
+      return
+    else
+      console.log('start level ' + level_id)
+
+    level = levels[level_id]
+
     @botx = level.startpos.x
     @boty = level.startpos.y
     if level.startpos.dir?
@@ -83,6 +93,9 @@ class Dwim
     @Hi = level.dims.h
     @cnv.width  = @W = board_start.x + @Wi * g.cell_size
     @cnv.height = @H = board_start.y + @Hi * g.cell_size
+
+    @parent_div.appendChild(@cnv)
+
     @ctx = @cnv.getContext('2d')
 
     @level = []
@@ -118,13 +131,14 @@ class Dwim
     @next_level_id = level.next_level
     @mapping_menu = null
     
-    @requestRender()
     @startInput()
 
     @updateProgram()
 
+    @requestRender()
+
   requestRender: ->
-    requestAnimationFrame(@renderCB)
+    @renderCB()
 
   startInput: ->
     registerKeyFunction(@keyboardCB)
@@ -251,8 +265,6 @@ class Dwim
       @setStatus(null, 'Input: up/down to move selection, &lt;enter&gt; to select')
 
   keyboardCB: (key) =>
-    @requestRender()
-
     if @stop_running
       return
 
@@ -281,6 +293,8 @@ class Dwim
 
       if key == '<return>'
         @doWhatMustBeDone()
+
+    @requestRender()
 
     return
 

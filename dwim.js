@@ -118,20 +118,28 @@
   };
 
   Dwim = (function() {
-    function Dwim(cnv, status1, status2) {
-      this.cnv = cnv;
+    function Dwim(parent_div) {
+      this.parent_div = parent_div;
       this.keyboardCB = __bind(this.keyboardCB, this);
       this.renderCB = __bind(this.renderCB, this);
-      this.ctx = this.cnv.getContext('2d');
-      this.W = this.cnv.width;
-      this.H = this.cnv.height;
-      this.Wi = Math.floor(this.W / g.cell_size);
-      this.Hi = Math.floor(this.H / g.cell_size);
-      this.status_div = [status1, status2];
+      this.status_div = [document.createElement('div'), document.createElement('div')];
+      this.cnv = document.createElement('canvas');
+      this.status_div[0].className = 'status';
+      this.status_div[1].className = 'status';
+      this.parent_div.appendChild(this.status_div[0]);
+      this.parent_div.appendChild(this.status_div[1]);
     }
 
-    Dwim.prototype.start = function(level) {
-      var id, obstacle, program, x, y, _i, _j, _k, _l, _len, _len1, _len2, _len3, _m, _n, _ref, _ref1, _ref2, _ref3, _ref4, _ref5, _ref6, _ref7;
+    Dwim.prototype.start = function(levels, level_id) {
+      var id, level, obstacle, program, x, y, _i, _j, _k, _l, _len, _len1, _len2, _len3, _m, _n, _ref, _ref1, _ref2, _ref3, _ref4, _ref5, _ref6, _ref7;
+      if (level_id === 'end') {
+        this.status_div[0].innerHTML = "That's all for now";
+        this.status_div[1].innerHTML = "Thanks for playing! -hcs";
+        return;
+      } else {
+        console.log('start level ' + level_id);
+      }
+      level = levels[level_id];
       this.botx = level.startpos.x;
       this.boty = level.startpos.y;
       if (level.startpos.dir != null) {
@@ -143,6 +151,7 @@
       this.Hi = level.dims.h;
       this.cnv.width = this.W = board_start.x + this.Wi * g.cell_size;
       this.cnv.height = this.H = board_start.y + this.Hi * g.cell_size;
+      this.parent_div.appendChild(this.cnv);
       this.ctx = this.cnv.getContext('2d');
       this.level = [];
       for (x = _i = 0, _ref = this.Wi; 0 <= _ref ? _i < _ref : _i > _ref; x = 0 <= _ref ? ++_i : --_i) {
@@ -193,13 +202,13 @@
       this.active_mapping = null;
       this.next_level_id = level.next_level;
       this.mapping_menu = null;
-      this.requestRender();
       this.startInput();
-      return this.updateProgram();
+      this.updateProgram();
+      return this.requestRender();
     };
 
     Dwim.prototype.requestRender = function() {
-      return requestAnimationFrame(this.renderCB);
+      return this.renderCB();
     };
 
     Dwim.prototype.startInput = function() {
@@ -309,7 +318,6 @@
 
     Dwim.prototype.keyboardCB = function(key) {
       var dir;
-      this.requestRender();
       if (this.stop_running) {
         return;
       }
@@ -341,6 +349,7 @@
           this.doWhatMustBeDone();
         }
       }
+      this.requestRender();
     };
 
     Dwim.prototype.renderProgramCell = function(x, y) {
