@@ -14,10 +14,17 @@ exit_text_style =
   font: '12px monospace', fill: 'white', align: 'center', baseline: 'middle'
 obstacle_cell_style = fill: 'white'
 program_cell_style = fill: 'blue'
+menu_text_style =
+  font: '16px monospace', fill: 'white', align: 'left', baseline: 'middle'
+menu_text_spacing = 24
 
 g.thick_lined_style = thick_lined_style
 g.lined_style  = lined_style
 g.att_lined_style = att_lined_style
+g.menu_text_style = menu_text_style
+g.menu_text_spacing = menu_text_spacing
+g.exit_text_style = exit_text_style
+
 bot_style = lined_style
 
 g.setStyle = setStyle = (ctx, s) ->
@@ -50,11 +57,11 @@ bot_points = [
   (x: -bot_size * (hr3-rr3), y: bot_size/2)
 ]
 
-g.renderBot = (ctx) ->
+g.renderBot = (ctx, x, y, dir) ->
   bp = bot_points
   ctx.save()
-  ctx.translate((@showxi + .5) * cell_size, (@showyi + .5) * cell_size)
-  ctx.rotate(-@showdir)
+  ctx.translate(x, y)
+  ctx.rotate(-dir)
 
   ctx.beginPath()
   ctx.moveTo(bp[0].x, bp[0].y)

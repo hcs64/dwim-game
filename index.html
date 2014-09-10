@@ -58,7 +58,7 @@ b: {
 a: {
   dims: {w: 10, h: 8},
   startpos: {x: 0, y: 0},
-  exitpos: {x:0, y: 5},
+  exitpos: {x: 0, y: 5},
   programs: [
     {code: 'ccddsddccc',
      loc: '3-5,0 5,1-2 4,2-4 5-6,4'},
@@ -70,6 +70,16 @@ a: {
   ],
   available_mappings: [],
   next_level: '0',
+},
+// c, testing
+c: {
+  dims: {w: 10, h: 10},
+  startpos: {x: 0, y: 0},
+  exitpos: {x: 0, y: 5},
+  programs: [{code: 'cc', loc: '1,1'}],
+  obstacles: [],
+  available_mappings: ['1-to-1'],
+  next_level: 'c',
 },
 // 0, intro?
 '0': {
