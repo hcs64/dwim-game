@@ -12,7 +12,7 @@ body {
   background-color: black;
 }
 
-div#status {
+div.status {
   font-family: monospace;
   color: white;
 }
@@ -21,11 +21,20 @@ span.error {
   color: red;
 }
 
+span.att {
+  color: yellow;
+}
+
+a {
+  color: blue;
+}
+
 </style>
 </head>
 
 <body>
-<div id="status">Not running</div>
+<div class="status" id="status1">Not running</div>
+<div class="status" id="status2"></div>
 <canvas width="640" height="480" id="level"></canvas>
 
 <script>
@@ -59,18 +68,50 @@ a: {
   obstacles: [
     '0-5,2 5-6,5-6 3-6,0-8'
   ],
-  available_mappings: []
+  available_mappings: [],
+  next_level: '0',
+},
+// 0, intro?
+'0': {
+  dims: {w: 10, h: 10},
+  startpos: {x: 0, y:0},
+  exitpos: {x:5, y:5},
+  programs: [
+    {code: 'cccc', loc: '1,3-6'},
+    {code: 'ssss', loc: '3-6,8'},
+    {code: 'dddd', loc: '8,3-6'},
+    {code: 'hhcccsshc', loc: '4-6,1 4,2-4 5-6,4'},
+  ],
+  obstacles: [
+    '0-9,3-6',
+    '3-6,0-9'
+  ],
+  available_mappings: [],
+  next_level: '1',
+},
+// 1
+'1': {
+  dims: {w: 9, h: 9},
+  startpos: {x: 0, y: 4},
+  exitpos: {x: 4, y: 7},
+  obstacles: [ '2,0-9', '6,0-9' ],
+  programs: [
+    {loc: '2-6,3', code: 'dssss' },
+  ],
+  available_mappings: [],
+  next_level: 'a',
 }
 };
 
 var dwim = new Dwim(
   document.getElementById('level'),
-  document.getElementById('status')
+  document.getElementById('status1'),
+  document.getElementById('status2')
   );
 
-level_id = window.location.hash;
+level_id = window.location.search;
 if (level_id !== '0' && !level_id) {
-  level_id = 'a';
+  level_id = '0';
 } else {
   level_id = level_id.substr(1)
 }

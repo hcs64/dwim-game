@@ -35,8 +35,8 @@ instruction_names =
   d: 'diamond'
   h: 'hex'
 
-board_start = {x: 70, y: 164}
-program_start = {x: 20, y: 20}
+board_start = {x: 70, y: 168}
+program_start = {x: 20, y: 32}
 mapping_start = {x: 70, y: 10}
 
 parseRanges = (ranges_string) ->
@@ -58,13 +58,15 @@ parseRanges = (ranges_string) ->
   point_list
 
 class Dwim
-  constructor: (@cnv, @div) ->
+  constructor: (@cnv, status1, status2) ->
     @ctx = @cnv.getContext('2d')
     @W = @cnv.width
     @H = @cnv.height
 
     @Wi = Math.floor(@W / g.cell_size)
     @Hi = Math.floor(@H / g.cell_size)
+
+    @status_div = [status1, status2]
   
   start: (level) ->
     @botx = level.startpos.x
@@ -107,23 +109,29 @@ class Dwim
     @allowed_move = null
     @mappings = [ new Mapping() ]
     @active_mapping = null
+    @next_level_id = level.next_level
     
-    @startRenderer()
+    @requestRender()
     @startInput()
 
     @updateProgram()
 
-  startRenderer: ->
+  requestRender: ->
     requestAnimationFrame(@renderCB)
 
   startInput: ->
     registerKeyFunction(@keyboardCB)
 
-  setStatus: (status) ->
-    @div.innerHTML = status
+  setStatus: (status1, status2) ->
+    @status_div[0].innerHTML = status1
+    @status_div[1].innerHTML = status2
 
   setError: (error) ->
-    @setStatus('<span class="error">' + error + '</span>')
+    @setStatus('<span class="error">Error</a>',
+      '<span class="error">' + error + '</span>')
+
+  nextLevelLink: () ->
+    @setStatus('Completed!', "<a href=\"?#{@next_level_id}\">Next Level</a>")
 
   renderCB: =>
     g.clear(@ctx, @W, @H)
@@ -192,14 +200,8 @@ class Dwim
 
         @ctx.restore()
 
-
-    if not @stop_render
-      requestAnimationFrame(@renderCB)
-
-    if @stop_running
-      @stop_render = true
-
   keyboardCB: (key) =>
+    @requestRender()
     if @stop_running
       return
 
@@ -245,7 +247,6 @@ class Dwim
       return false
 
     if @allowed_move?
-      console.log('allowed ' +@allowed_move.x+','+@allowed_move.y)
       if @allowed_move.x != x or @allowed_move.y != y
         return false
 
@@ -255,11 +256,10 @@ class Dwim
     x = @botx + dir.dx
     y = @boty + dir.dy
 
-    console.log('want ' +x+','+y)
-    
     if @isMoveAllowed(x,y)
-      if @active_program?
-        @execute({type: 'move', dir: dir})
+      if @active_program? 
+        if @isCurrentActionBlank()
+          @execute({type: 'move', dir: dir})
       else
         # free movement
         @botx = x
@@ -281,6 +281,10 @@ class Dwim
 
   translateInstruction: (instruction) ->
     return @active_mapping.mapCode(instruction)
+
+  isCurrentActionBlank: () ->
+    return (@active_program &&
+            @translateInstruction(@currentInstruction()).type == 'blank')
 
   execute: (requested_action) ->
     ra = requested_action
@@ -312,8 +316,7 @@ class Dwim
         @installMapping(@active_mapping, requested_action,
                         @currentInstruction())
         @updateProgram()
-        # recursively execute the command
-        return @execute(requested_action)
+        return true
 
     @pc += 1
     if @pc == @active_program.code.length
@@ -337,7 +340,7 @@ class Dwim
           @active_mapping = @mappings[0] # questionable
           @pc = 0
     if cell.type == 'exit'
-      @setStatus('Complete!')
+      @nextLevelLink()
       @stop_running = true
       return
 
@@ -354,19 +357,21 @@ class Dwim
           if not @isMoveAllowed(action.dir.dx + @botx, action.dir.dy + @boty)
             @setError('No valid move')
           else
-            @setStatus('Running Program, Input: &lt;enter&gt; to move')
+            @setStatus('Running Program',
+              'Input: &lt;enter&gt; to move')
         when 'mapping'
-          @setStatus('Running Program, Input: &lt;enter&gt; to switch mapping')
+          @setStatus('Running Program',
+            'Input: &lt;enter&gt; to switch mapping')
         when 'blank'
           @setStatus(
-            "Need an action for #{instruction_names[instruction]},
-            Input: any direction" +
+            "<span class=\"att\">Need an action for #{instruction_names[instruction]}</span>",
+            "Input: any direction" +
               (if @available_mappings.length > 0
                  ', &quot;m&quot; to switch mapping'
                else
                  ''))
     else
-      @setStatus('Free Running, Input: any direction')
+      @setStatus('Free Running', 'Input: any direction')
 
   installMapping: (mapping, action, instruction) ->
     new_action = null
@@ -449,7 +454,7 @@ class Mapping
         @commands[idx].render(ctx)
       else
         ctx.save()
-        g.setStyle(ctx, g.lined_style)
+        g.setStyle(ctx, g.att_lined_style)
         g.renderShape(ctx, 'question', ics/2)
         ctx.restore()
 

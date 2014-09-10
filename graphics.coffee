@@ -6,6 +6,7 @@ g.cell_size = cell_size = 32
 
 clear_style = fill: 'black'
 lined_style = stroke: 'white', width: 1.5, fill: 'black'
+att_lined_style = stroke: 'yellow', width: 1.5, fill: 'black'
 thick_lined_style = stroke: 'white', width: 2.5, fill: 'black'
 pixlined_style = stroke: 'white', width: 1, fill: 'black'
 filled_style = fill: 'white'
@@ -16,6 +17,7 @@ program_cell_style = fill: 'blue'
 
 g.thick_lined_style = thick_lined_style
 g.lined_style  = lined_style
+g.att_lined_style = att_lined_style
 bot_style = lined_style
 
 g.setStyle = setStyle = (ctx, s) ->

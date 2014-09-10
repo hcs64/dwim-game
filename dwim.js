@@ -63,12 +63,12 @@
 
   board_start = {
     x: 70,
-    y: 164
+    y: 168
   };
 
   program_start = {
     x: 20,
-    y: 20
+    y: 32
   };
 
   mapping_start = {
@@ -111,9 +111,8 @@
   };
 
   Dwim = (function() {
-    function Dwim(cnv, div) {
+    function Dwim(cnv, status1, status2) {
       this.cnv = cnv;
-      this.div = div;
       this.keyboardCB = __bind(this.keyboardCB, this);
       this.renderCB = __bind(this.renderCB, this);
       this.ctx = this.cnv.getContext('2d');
@@ -121,6 +120,7 @@
       this.H = this.cnv.height;
       this.Wi = Math.floor(this.W / g.cell_size);
       this.Hi = Math.floor(this.H / g.cell_size);
+      this.status_div = [status1, status2];
     }
 
     Dwim.prototype.start = function(level) {
@@ -180,12 +180,13 @@
       this.allowed_move = null;
       this.mappings = [new Mapping()];
       this.active_mapping = null;
-      this.startRenderer();
+      this.next_level_id = level.next_level;
+      this.requestRender();
       this.startInput();
       return this.updateProgram();
     };
 
-    Dwim.prototype.startRenderer = function() {
+    Dwim.prototype.requestRender = function() {
       return requestAnimationFrame(this.renderCB);
     };
 
@@ -193,12 +194,17 @@
       return registerKeyFunction(this.keyboardCB);
     };
 
-    Dwim.prototype.setStatus = function(status) {
-      return this.div.innerHTML = status;
+    Dwim.prototype.setStatus = function(status1, status2) {
+      this.status_div[0].innerHTML = status1;
+      return this.status_div[1].innerHTML = status2;
     };
 
     Dwim.prototype.setError = function(error) {
-      return this.setStatus('<span class="error">' + error + '</span>');
+      return this.setStatus('<span class="error">Error</a>', '<span class="error">' + error + '</span>');
+    };
+
+    Dwim.prototype.nextLevelLink = function() {
+      return this.setStatus('Completed!', "<a href=\"?" + this.next_level_id + "\">Next Level</a>");
     };
 
     Dwim.prototype.renderCB = function() {
@@ -257,18 +263,13 @@
         this.ctx.save();
         this.ctx.translate(mapping_start.x, mapping_start.y);
         this.active_mapping.render(this.ctx, this.currentInstruction());
-        this.ctx.restore();
-      }
-      if (!this.stop_render) {
-        requestAnimationFrame(this.renderCB);
-      }
-      if (this.stop_running) {
-        return this.stop_render = true;
+        return this.ctx.restore();
       }
     };
 
     Dwim.prototype.keyboardCB = function(key) {
       var dir;
+      this.requestRender();
       if (this.stop_running) {
         return;
       }
@@ -323,7 +324,6 @@
         return false;
       }
       if (this.allowed_move != null) {
-        console.log('allowed ' + this.allowed_move.x + ',' + this.allowed_move.y);
         if (this.allowed_move.x !== x || this.allowed_move.y !== y) {
           return false;
         }
@@ -335,13 +335,14 @@
       var x, y;
       x = this.botx + dir.dx;
       y = this.boty + dir.dy;
-      console.log('want ' + x + ',' + y);
       if (this.isMoveAllowed(x, y)) {
         if (this.active_program != null) {
-          this.execute({
-            type: 'move',
-            dir: dir
-          });
+          if (this.isCurrentActionBlank()) {
+            this.execute({
+              type: 'move',
+              dir: dir
+            });
+          }
         } else {
           this.botx = x;
           this.boty = y;
@@ -363,6 +364,10 @@
 
     Dwim.prototype.translateInstruction = function(instruction) {
       return this.active_mapping.mapCode(instruction);
+    };
+
+    Dwim.prototype.isCurrentActionBlank = function() {
+      return this.active_program && this.translateInstruction(this.currentInstruction()).type === 'blank';
     };
 
     Dwim.prototype.execute = function(requested_action) {
@@ -398,7 +403,7 @@
         case 'blank':
           this.installMapping(this.active_mapping, requested_action, this.currentInstruction());
           this.updateProgram();
-          return this.execute(requested_action);
+          return true;
       }
       this.pc += 1;
       if (this.pc === this.active_program.code.length) {
@@ -422,7 +427,7 @@
         }
       }
       if (cell.type === 'exit') {
-        this.setStatus('Complete!');
+        this.nextLevelLink();
         this.stop_running = true;
         return;
       }
@@ -440,16 +445,16 @@
             if (!this.isMoveAllowed(action.dir.dx + this.botx, action.dir.dy + this.boty)) {
               return this.setError('No valid move');
             } else {
-              return this.setStatus('Running Program, Input: &lt;enter&gt; to move');
+              return this.setStatus('Running Program', 'Input: &lt;enter&gt; to move');
             }
             break;
           case 'mapping':
-            return this.setStatus('Running Program, Input: &lt;enter&gt; to switch mapping');
+            return this.setStatus('Running Program', 'Input: &lt;enter&gt; to switch mapping');
           case 'blank':
-            return this.setStatus(("Need an action for " + instruction_names[instruction] + ", Input: any direction") + (this.available_mappings.length > 0 ? ', &quot;m&quot; to switch mapping' : ''));
+            return this.setStatus("<span class=\"att\">Need an action for " + instruction_names[instruction] + "</span>", "Input: any direction" + (this.available_mappings.length > 0 ? ', &quot;m&quot; to switch mapping' : ''));
         }
       } else {
-        return this.setStatus('Free Running, Input: any direction');
+        return this.setStatus('Free Running', 'Input: any direction');
       }
     };
 
@@ -538,7 +543,7 @@
           this.commands[idx].render(ctx);
         } else {
           ctx.save();
-          g.setStyle(ctx, g.lined_style);
+          g.setStyle(ctx, g.att_lined_style);
           g.renderShape(ctx, 'question', ics / 2);
           ctx.restore();
         }
