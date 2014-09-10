@@ -243,7 +243,6 @@ class Dwim
       return false
 
     if @allowed_move?
-      console.log('allowed ' +@allowed_move.x+','+@allowed_move.y)
       if @allowed_move.x != x or @allowed_move.y != y
         return false
 
@@ -253,11 +252,10 @@ class Dwim
     x = @botx + dir.dx
     y = @boty + dir.dy
 
-    console.log('want ' +x+','+y)
-    
     if @isMoveAllowed(x,y)
-      if @active_program?
-        @execute({type: 'move', dir: dir})
+      if @active_program? 
+        if @isCurrentActionBlank()
+          @execute({type: 'move', dir: dir})
       else
         # free movement
         @botx = x
@@ -279,6 +277,10 @@ class Dwim
 
   translateInstruction: (instruction) ->
     return @active_mapping.mapCode(instruction)
+
+  isCurrentActionBlank: () ->
+    return (@active_program &&
+            @translateInstruction(@currentInstruction()).type == 'blank')
 
   execute: (requested_action) ->
     ra = requested_action
@@ -310,8 +312,7 @@ class Dwim
         @installMapping(@active_mapping, requested_action,
                         @currentInstruction())
         @updateProgram()
-        # recursively execute the command
-        return @execute(requested_action)
+        return true
 
     @pc += 1
     if @pc == @active_program.code.length
