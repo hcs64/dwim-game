@@ -135,6 +135,23 @@ b: {
     {code: 'd', loc: '7,4'}
   ],
   available_mappings: [],
+  next_level: '5',
+},
+// 5, mapping change
+'5': {
+  dims: {w: 9, h: 9},
+  startpos: {x: 8, y: 1, dir: Dwim.LEFT},
+  exitpos: {x: 8, y: 8},
+  obstacles: [
+    '4-8,2 3-5,0-8 4-8,6 2-5,4-8 4-8,4'
+  ],
+  programs: [
+    {code: 'ccc', loc: '3-5,1'},
+    {code: 'dccc', loc: '3-5,3'},
+    {code: 's', loc: '7,4'},
+    {code: 'ccssdccc', loc: '3-5,5 3-5,7 3,6'}
+  ],
+  available_mappings: ['1-to-1'],
   next_level: 'end',
 },
 };

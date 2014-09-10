@@ -69,11 +69,15 @@ class Dwim
     @Hi = Math.floor(@H / g.cell_size)
 
     @status_div = [status1, status2]
-  
+
+ 
   start: (level) ->
     @botx = level.startpos.x
     @boty = level.startpos.y
-    @botdir = RIGHT.theta
+    if level.startpos.dir?
+      @botdir = level.startpos.dir.theta
+    else
+      @botdir = RIGHT.theta
 
     @Wi = level.dims.w
     @Hi = level.dims.h
@@ -604,6 +608,10 @@ class MappingCommand
     g.renderNumber(ctx, @id+1)
     ctx.restore()
 
-
+Dwim.UP     = UP
+Dwim.DOWN   = DOWN
+Dwim.LEFT   = LEFT
+Dwim.RIGHT  = RIGHT
+ 
 window.Dwim = Dwim
 
