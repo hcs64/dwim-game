@@ -34,7 +34,7 @@ window.outlineRender = (dims, obstacles, ctx) ->
     obstacle_present[x][y] = true
 
   ctx.strokeStyle = 'grey'
-  ctx.lineWidth = .5
+  ctx.lineWidth = 1
   for x in [0...dims.width]
     for y in [0...dims.height]
       if not obstacle_present[x][y]
