@@ -29,14 +29,16 @@ a {
 <script>
 (function(){
 
-var obstacles = '2-7,0-3 3-6,4-6 2-7,7-9 2,5 8,4';
+//var obstacles = '2-7,0-3 3-6,4-6 2-7,7-9 2,5 8,4';
+var obstacles = '2-7,0-3 3-6,4 3-6,6 2-7,7-9 8,4';
 var dims = {width:10, height:10, block:32};
 
 var cnv = document.getElementById('cnv');
-cnv.width = (dims.width+2) * dims.block;
-cnv.height = (dims.height+2) * dims.block;
+cnv.width = dims.width * dims.block + 20;
+cnv.height = dims.height * dims.block + 20;
 
 var ctx = cnv.getContext('2d');
+ctx.translate(10,10);
 
 outlineRender(dims, obstacles, ctx);
 
