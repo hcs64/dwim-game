@@ -8,6 +8,9 @@ class DwimGraphics
     @mapping_dims = {x: 90, y: 10}
     @proglist_dims = {}
 
+    @program_fill_style = '#0000c0'
+    @grid_stroke_style = '#404040'
+
     @computeOutlines()
 
     # construct the canvas
@@ -68,8 +71,8 @@ class DwimGraphics
     # grid
     @ctx.save()
     @ctx.translate(@board_dims.x, @board_dims.y)
-    @ctx.strokeStyle = 'grey'
-    @ctx.fillStyle = 'blue'
+    @ctx.strokeStyle = @grid_stroke_style
+    @ctx.fillStyle = @program_fill_style
     @ctx.lineWidth = 1
     for x in [0...@game_state.Wi]
       for y in [0...@game_state.Hi]
