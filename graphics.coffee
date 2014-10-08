@@ -135,7 +135,7 @@ class DwimGraphics
 
     return
 
-  renderShape: (shape, radius) ->
+  renderShape: (shape, radius, fill=false) ->
     @ctx.beginPath()
     switch shape
       when 'circle'
@@ -177,6 +177,8 @@ class DwimGraphics
         @ctx.moveTo(0, .75*r)
         @ctx.lineTo(0, r)
    
+    if fill
+      @ctx.fill()
     @ctx.stroke()
     return
 

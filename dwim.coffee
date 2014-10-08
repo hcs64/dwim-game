@@ -129,13 +129,14 @@ class Dwim
         y: (@state.bot.y+.5)*@gfx.block+@gfx.board_dims.y-.5
       render: (ctx) ->
          ctx.strokeStyle = 'white'
+         ctx.fillStyle = 'black'
          stretch = 2*(1-Math.abs(@t-.5))
          if @dir == UP or @dir == DOWN
            ctx.scale(1/stretch, stretch)
          else
            ctx.scale(stretch, 1/stretch)
          ctx.lineWidth = 1.5
-         gfx.renderShape('circle', gfx.block*.4)
+         gfx.renderShape('circle', gfx.block*.4, true)
       animations: []
       leftover_t: 0
     {x:@bot_sprite.x, y:@bot_sprite.y} = @bot_sprite.computePos()
@@ -174,7 +175,7 @@ class Dwim
       if @state.requestBotMove(dir)
         new_pos = @bot_sprite.computePos()
         @bot_sprite.animations.push(
-          duration: 100
+          duration: 150
           t0: 0, t1: 1
           x0: old_pos.x, y0: old_pos.y
           x1: new_pos.x, y1: new_pos.y
@@ -184,7 +185,7 @@ class Dwim
         howfar = .15*@gfx.block
         new_pos = x: old_pos.x+dir.dx*howfar, y: old_pos.y+dir.dy*howfar
         @bot_sprite.animations.push(
-          duration: 10
+          duration: 15
           t0: 0, t1: .10
           x0: old_pos.x, y0: old_pos.y
           x1: new_pos.x, y1: new_pos.y
