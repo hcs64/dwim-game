@@ -170,7 +170,13 @@ var game = new Dwim(
   levels[level_id]
 );
 
-game.render();
+function render() {
+  game.render(Date.now());
+  requestAnimationFrame(render);
+};
+render();
+
+registerKeyFunction(game.keyboardCB);
 
 })();
 </script>

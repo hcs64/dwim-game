@@ -13,6 +13,8 @@ class DwimGraphics
 
     @computeOutlines()
 
+    @sprites = []
+
     # construct the canvas
     @cnv = document.createElement('canvas')
     @cnv.width = @board_dims.x + @board_dims.width + @block
@@ -58,7 +60,6 @@ class DwimGraphics
   render: ->
     @renderBG()
     @renderSprites()
-    @renderPlayer()
     @renderFG()
 
   renderBG: ->
@@ -86,9 +87,14 @@ class DwimGraphics
 
     @ctx.restore()
 
-  renderSprites: -> return
+  renderSprites: ->
+    for sprite in @sprites
+      @ctx.save()
+      @ctx.translate(sprite.x, sprite.y)
+      sprite.render(@ctx)
+      @ctx.restore()
 
-  renderPlayer: -> return
+    return
 
   renderFG: ->
     @ctx.save()
@@ -111,7 +117,7 @@ class DwimGraphics
 ################
 
 
-  @renderArrow  = (dir, size) ->
+  renderArrow: (dir, size) ->
     as = size*.75  # arrow size
     ahs = size*.2 # arrowhead size
 
@@ -129,7 +135,7 @@ class DwimGraphics
 
     return
 
-  @renderShape = (shape, radius) ->
+  renderShape: (shape, radius) ->
     @ctx.beginPath()
     switch shape
       when 'circle'

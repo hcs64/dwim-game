@@ -60,8 +60,7 @@ class DwimState
     @Wi = level.dims.w
     @Hi = level.dims.h
 
-    @botx = level.startpos.x
-    @boty = level.startpos.y
+    @bot = {x: level.startpos.x, y: level.startpos.y}
 
     @level = {}
     for x in [-1..@Wi]
@@ -107,13 +106,75 @@ class DwimState
 
     @available_mappings = level.available_mappings
 
+  requestBotMove: (dir) ->
+    @bot.x += dir.dx
+    @bot.y += dir.dy
+
+    return true
+
 ################
 
 class Dwim
   constructor: (@parent_div, @level) ->
     @state = new DwimState(@level)
-    @gfx = new window.DwimGraphics(@parent_div, @state)
-  render: ->
+    gfx = @gfx = new window.DwimGraphics(@parent_div, @state)
+
+    @bot_sprite =
+      # this of course all belongs in graphics
+      computePos: =>
+        x: (@state.bot.x+.5)*@gfx.block+@gfx.board_dims.x-.5
+        y: (@state.bot.y+.5)*@gfx.block+@gfx.board_dims.y-.5
+      render: (ctx) ->
+         ctx.strokeStyle = 'white'
+         stretch = 2*(1-Math.abs(@t-.5))
+         if @dir == UP or @dir == DOWN
+           ctx.scale(1/stretch, stretch)
+         else
+           ctx.scale(stretch, 1/stretch)
+         ctx.lineWidth = 1.5
+         gfx.renderShape('circle', gfx.block*.4)
+      animations: []
+      leftover_t: 0
+    {x:@bot_sprite.x, y:@bot_sprite.y} = @bot_sprite.computePos()
+    @gfx.sprites.push(@bot_sprite)
+  render: (absolute_t) ->
+    do_next = true
+    while do_next and @bot_sprite.animations.length > 0
+      do_next = false
+      anim = @bot_sprite.animations[0]
+      @bot_sprite.dir = anim.dir
+      if not anim.start_t?
+        anim.start_t = absolute_t
+        anim.start_t += @bot_sprite.leftover_t
+        @bot_sprite.leftover_t = 0
+      t = (absolute_t - anim.start_t) / anim.duration
+
+      if t >= 1
+        @bot_sprite.leftover_t = absolute_t - (anim.start_t + anim.duration)
+        @bot_sprite.animations.shift()
+        do_next = true
+        @bot_sprite.x = anim.x1
+        @bot_sprite.y = anim.y1
+        @bot_sprite.t = 0
+      else
+        @bot_sprite.x = (anim.x1 - anim.x0) * t + anim.x0
+        @bot_sprite.y = (anim.y1 - anim.y0) * t + anim.y0
+        @bot_sprite.t = t
+
+    @bot_sprite.leftover_t = 0
     @gfx.render()
+  keyboardCB: (key) =>
+    t = Date.now()
+    if key of keymap
+      dir = keymap[key]
+      old_pos = @bot_sprite.computePos()
+      if @state.requestBotMove(dir)
+        new_pos = @bot_sprite.computePos()
+        @bot_sprite.animations.push(
+          duration: 100
+          x0: old_pos.x, y0: old_pos.y
+          x1: new_pos.x, y1: new_pos.y
+          dir: dir
+        )
 
 window.Dwim = Dwim
