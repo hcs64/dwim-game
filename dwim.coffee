@@ -107,10 +107,13 @@ class DwimState
     @available_mappings = level.available_mappings
 
   requestBotMove: (dir) ->
-    @bot.x += dir.dx
-    @bot.y += dir.dy
-
-    return true
+    dest = {x: @bot.x + dir.dx, y: @bot.y + dir.dy}
+    if @level[dest.x][dest.y].type != 'obstacle'
+      @bot.x = dest.x
+      @bot.y = dest.y
+      return true
+    else
+      return false
 
 ################
 
@@ -145,7 +148,7 @@ class Dwim
       @bot_sprite.dir = anim.dir
       if not anim.start_t?
         anim.start_t = absolute_t
-        anim.start_t += @bot_sprite.leftover_t
+        anim.start_t -= @bot_sprite.leftover_t
         @bot_sprite.leftover_t = 0
       t = (absolute_t - anim.start_t) / anim.duration
 
@@ -155,11 +158,11 @@ class Dwim
         do_next = true
         @bot_sprite.x = anim.x1
         @bot_sprite.y = anim.y1
-        @bot_sprite.t = 0
+        @bot_sprite.t = anim.t1
       else
         @bot_sprite.x = (anim.x1 - anim.x0) * t + anim.x0
         @bot_sprite.y = (anim.y1 - anim.y0) * t + anim.y0
-        @bot_sprite.t = t
+        @bot_sprite.t = (anim.t1 - anim.t0) * t + anim.t0
 
     @bot_sprite.leftover_t = 0
     @gfx.render()
@@ -172,9 +175,42 @@ class Dwim
         new_pos = @bot_sprite.computePos()
         @bot_sprite.animations.push(
           duration: 100
+          t0: 0, t1: 1
           x0: old_pos.x, y0: old_pos.y
           x1: new_pos.x, y1: new_pos.y
           dir: dir
         )
+      else
+        howfar = .15*@gfx.block
+        new_pos = x: old_pos.x+dir.dx*howfar, y: old_pos.y+dir.dy*howfar
+        @bot_sprite.animations.push(
+          duration: 10
+          t0: 0, t1: .10
+          x0: old_pos.x, y0: old_pos.y
+          x1: new_pos.x, y1: new_pos.y
+          dir: dir
+        )
+        @bot_sprite.animations.push(
+          duration: 50
+          t0: .10, t1: 0
+          x0: new_pos.x, y0: new_pos.y
+          x1: new_pos.x, y1: new_pos.y
+          dir: dir
+        )
+        @bot_sprite.animations.push(
+          duration: 25
+          t0: 0, t1: .1
+          x0: new_pos.x, y0: new_pos.y
+          x1: (new_pos.x+old_pos.x)/2, y1: (new_pos.y+old_pos.y)/2
+          dir: dir
+        )
+        @bot_sprite.animations.push(
+          duration: 25
+          t0: .1, t1: 0
+          x0: (new_pos.x+old_pos.x)/2, y0: (new_pos.y+old_pos.y)/2
+          x1: old_pos.x, y1: old_pos.y
+          dir: dir
+        )
+
 
 window.Dwim = Dwim
