@@ -161,10 +161,11 @@ if (level_id !== '0' && !level_id) {
 }
 
 var game = new Dwim(
-  document.getElementById('game1')
+  document.getElementById('game1'),
+  levels[level_id]
 );
 
-game.start(levels, level_id);
+game.render();
 
 })();
 </script>
