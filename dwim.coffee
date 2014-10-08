@@ -116,10 +116,4 @@ class Dwim
   render: ->
     @gfx.render()
 
-  UP: UP
-  DOWN: DOWN
-  LEFT: LEFT
-  RIGHT: RIGHT
-
-
 window.Dwim = Dwim
