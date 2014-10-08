@@ -96,7 +96,7 @@ class DwimGraphics
     # outlines
     @ctx.save()
     @ctx.translate(@board_dims.x, @board_dims.y)
-    @ctx.lineWidth = 4
+    @ctx.lineWidth = 2
     @ctx.lineCap = 'round'
     @ctx.strokeStyle = 'white'
     @ctx.beginPath()
