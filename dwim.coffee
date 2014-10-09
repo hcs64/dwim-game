@@ -141,7 +141,12 @@ class Dwim
       leftover_t: 0
     {x:@bot_sprite.x, y:@bot_sprite.y} = @bot_sprite.computePos()
     @gfx.sprites.push(@bot_sprite)
-  render: (absolute_t) ->
+
+  startRender: ->
+    requestAnimationFrame(@render)
+    rendering = true
+
+  render: (absolute_t) =>
     do_next = true
     while do_next and @bot_sprite.animations.length > 0
       do_next = false
@@ -165,8 +170,16 @@ class Dwim
         @bot_sprite.y = (anim.y1 - anim.y0) * t + anim.y0
         @bot_sprite.t = (anim.t1 - anim.t0) * t + anim.t0
 
+
     @bot_sprite.leftover_t = 0
     @gfx.render()
+
+    if @bot_sprite.animations.length > 0
+      requestAnimationFrame(@render)
+      @rendering = true
+    else
+      @rendering = false
+
   keyboardCB: (key) =>
     t = Date.now()
     if key of keymap
@@ -212,6 +225,10 @@ class Dwim
           x1: old_pos.x, y1: old_pos.y
           dir: dir
         )
+
+    if not @rendering and @bot_sprite.animations.length > 0
+      requestAnimationFrame(@render)
+      @rendering = true
 
 
 window.Dwim = Dwim
