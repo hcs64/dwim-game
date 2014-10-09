@@ -287,9 +287,10 @@ class DwimGraphics
       y: @record_dims.y + .5 * @block + .5
       scale: 0
       render: =>
-        @ctx.scale(sprite.scale, sprite.scale)
-        @ctx.strokeStyle = 'white'
-        @renderArrow(dir.theta, @block)
+        if sprite.scale > 0
+          @ctx.scale(sprite.scale, sprite.scale)
+          @ctx.strokeStyle = 'white'
+          @renderArrow(dir.theta, @block)
     sprite.animations = @animatePopIn(1, {x:sprite.x, y:sprite.y})
 
     @advanceNextRecordSprite(1)
