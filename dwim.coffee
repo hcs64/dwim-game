@@ -199,14 +199,14 @@ class Dwim
           dir: dir
         )
         @bot_sprite.animations.push(
-          duration: 25
+          duration: 50
           t0: 0, t1: .1
           x0: new_pos.x, y0: new_pos.y
           x1: (new_pos.x+old_pos.x)/2, y1: (new_pos.y+old_pos.y)/2
           dir: dir
         )
         @bot_sprite.animations.push(
-          duration: 25
+          duration: 50
           t0: .1, t1: 0
           x0: (new_pos.x+old_pos.x)/2, y0: (new_pos.y+old_pos.y)/2
           x1: old_pos.x, y1: old_pos.y
