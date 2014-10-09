@@ -3,10 +3,21 @@ class DwimGraphics
     # constants of layout
     @block = 32
 
-    @board_dims = {x: 70, y: 168, width: @block*10, height: @block*10}
-    @program_dims = {x: 20, y: 32}
-    @mapping_dims = {x: 90, y: 10}
-    @proglist_dims = {}
+    @record_dims =
+      x: 10
+      y: 10
+      width: @block*10
+      height: 150
+    @mapping_dims =
+      x: 10
+      y: @record_dims.x+@record_dims.height+@block,
+      width: @block*3
+      height: @block*10
+    @board_dims =
+      x: @mapping_dims.x+@mapping_dims.width+@block
+      y: @record_dims.y+@record_dims.height+@block
+      width: @block*10
+      height: @block*10
 
     @program_fill_style = '#0000c0'
     @grid_stroke_style = '#404040'
@@ -14,6 +25,8 @@ class DwimGraphics
     @computeOutlines()
 
     @sprites = []
+    @record_sprites = []
+    @addNextRecordSprite()
 
     # construct the canvas
     @cnv = document.createElement('canvas')
@@ -107,6 +120,8 @@ class DwimGraphics
         else
           if anim.lerp?
             for property in anim.lerp
+              if not property.v0?
+                property.v0 = sprite[property.name]
               sprite[property.name] =
                 (property.v1 - property.v0) * t + property.v0
 
@@ -231,6 +246,57 @@ class DwimGraphics
     {x:bot.x, y:bot.y} = bot.computePos()
 
     return bot
+
+  animatePopIn: (scale, pos) ->
+    return [ {
+      duration: 100
+      lerp: [{name: 'scale', v0: 0, v1: scale*1.25}]
+      set: [{name: 'x', v: pos.x}, {name: 'y', v: pos.y}]}
+
+      {duration: 25
+      lerp: [{name: 'scale', v0: scale*1.25, v1: scale}]}
+    ]
+  animatePopOut: ->
+    return [ { duration: 100, lerp: [{name: 'scale', v0: 1, v1: 0}] } ]
+
+  addNextRecordSprite: ->
+    @next_record_sprite =
+      x: @record_dims.x + .5 * @block + .5
+      y: @record_dims.y + .5 * @block + .5
+      render: =>
+        @ctx.strokeStyle = 'white'
+        @renderShape('square', @block*.625)
+      animations: []
+    @sprites.push(@next_record_sprite)
+  advanceNextRecordSprite: (count) ->
+    @next_record_sprite.animations.push(
+      duration: 75
+    )
+    @next_record_sprite.animations.push(
+      duration: 50
+      lerp: [
+        name: 'x'
+        v1: @record_dims.x + (.5 + @record_sprites.length + count) * @block+.5
+      ]
+    )
+
+
+  addRecordSprite: (dir) ->
+    sprite =
+      x: @record_dims.x + (.5 + @record_sprites.length) * @block + .5
+      y: @record_dims.y + .5 * @block + .5
+      scale: 0
+      render: =>
+        @ctx.scale(sprite.scale, sprite.scale)
+        @ctx.strokeStyle = 'white'
+        @renderArrow(dir.theta, @block)
+    sprite.animations = @animatePopIn(1, {x:sprite.x, y:sprite.y})
+
+    @advanceNextRecordSprite(1)
+
+    @record_sprites.push(sprite)
+    @sprites.push(sprite)
+
 
 ################
 

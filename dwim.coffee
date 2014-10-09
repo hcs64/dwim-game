@@ -145,6 +145,7 @@ class Dwim
       old_pos = @bot_sprite.computePos()
       if @state.requestBotMove(dir)
         @bot_sprite.animateMove(old_pos, dir)
+        @gfx.addRecordSprite(dir)
       else
         @bot_sprite.animateBump(old_pos, dir)
 
