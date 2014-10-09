@@ -7,7 +7,7 @@ class DwimGraphics
       x: 10
       y: 10
       width: @block*10
-      height: 150
+      height: @block*3
     @mapping_dims =
       x: 10
       y: @record_dims.x+@record_dims.height+@block,
@@ -88,8 +88,10 @@ class DwimGraphics
     @ctx.restore()
 
   animateSprites: (absolute_t) ->
+    to_keep = []
     for sprite in @sprites
       do_next = true
+      remove = false
       while do_next and sprite.animations.length > 0
         do_next = false
         anim = sprite.animations[0]
@@ -112,7 +114,11 @@ class DwimGraphics
           # hit the end of the animation
           sprite.leftover_t = absolute_t - (anim.start_t + anim.duration)
           sprite.animations.shift()
-          do_next = true
+
+          if anim.remove_on_finish
+            remove = true
+          else
+            do_next = true
 
           if anim.lerp?
             for property in anim.lerp
@@ -126,6 +132,9 @@ class DwimGraphics
                 (property.v1 - property.v0) * t + property.v0
 
       sprite.leftover_t = 0
+      if not remove
+        to_keep.push(sprite)
+    @sprites = to_keep
 
   isAnimating: () ->
     for sprite in @sprites
@@ -263,25 +272,49 @@ class DwimGraphics
     @next_record_sprite =
       x: @record_dims.x + .5 * @block + .5
       y: @record_dims.y + .5 * @block + .5
-      render: =>
+      render: (sprite) =>
         @ctx.strokeStyle = 'white'
+        @ctx.scale(sprite.scale, sprite.scale)
         @renderShape('square', @block*.625)
+      scale: 1
       animations: []
     @sprites.push(@next_record_sprite)
   advanceNextRecordSprite: (count) ->
-    @next_record_sprite.animations.push(
-      duration: 75
-    )
-    @next_record_sprite.animations.push(
-      duration: 50
-      lerp: [
-        name: 'x'
-        v1: @record_dims.x + (.5 + @record_sprites.length + count) * @block+.5
-      ]
-    )
+    width = @record_dims.width/@block
+    x = @record_dims.x + (.5 + @record_sprites.length%width) * @block + .5
+    y = @record_dims.y + (.5 + @record_sprites.length//width) * @block + .5
+
+    if @record_sprites.length%width == 0
+      # avoid diagonal flight
+      @next_record_sprite.animations.push(
+        duration: 75
+        lerp: [
+          {name: 'x', v1: @record_dims.x + .5*@block + @record_dims.width + .5}
+          {name: 'scale', v0: 1, v1: 0}]
+      )
+      @next_record_sprite.animations.push(
+        duration: 50
+        set: [ {name: 'y', v: y}, {name: 'scale', v: 1} ]
+        lerp: [ {name: 'x', v0: @record_dims.x - @block, v1: x} ]
+      )
+
+    else
+      @next_record_sprite.animations.push(
+        duration: 75
+      )
+      @next_record_sprite.animations.push(
+        duration: 50
+        lerp: [
+          {name: 'x', v1: x},
+          {name: 'y', v1: y}
+        ]
+      )
 
 
   addRecordSprite: (dir) ->
+    height = @record_dims.height/@block
+    width = @record_dims.width/@block
+
     sprite =
       x: @record_dims.x + (.5 + @record_sprites.length) * @block + .5
       y: @record_dims.y + .5 * @block + .5
@@ -291,11 +324,49 @@ class DwimGraphics
           @ctx.scale(sprite.scale, sprite.scale)
           @ctx.strokeStyle = 'white'
           @renderArrow(dir.theta, @block)
-    sprite.animations = @animatePopIn(1, {x:sprite.x, y:sprite.y})
+      animations: []
 
-    @advanceNextRecordSprite(1)
+    while sprite.x > @record_dims.x + @record_dims.width
+      sprite.x -= @record_dims.width
+      sprite.y += @block
 
     @record_sprites.push(sprite)
+
+    if @record_sprites.length == height * width
+      for old_sprite in @record_sprites[0...width]
+        old_sprite.animations = [
+          duration: 125
+          lerp: [ {name: 'scale', v0: 1, v1: 0},
+                  {name: 'y', v1: @record_dims.y-@block} ]
+          remove_on_finish: true
+        ]
+      for old_sprite,i in @record_sprites[width..]
+        desty = @record_dims.y+(.5  + i//width)*@block + .5
+        if old_sprite == sprite
+          # this does a mix of pop in and scroll up
+          sprite.animations.push(
+            duration: 100
+            lerp: [ {name: 'y', v0: sprite.y, v1: (desty-sprite.y)*(100/125)+sprite.y},
+                    {name: 'scale', v0: 0, v1: 1.25}
+                  ]
+          )
+          sprite.animations.push(
+            duration: 25
+            lerp: [ {name: 'y', v1: desty},
+                    {name: 'scale', v1: 1}
+                  ]
+          )
+        else
+          old_sprite.animations.push(
+            duration: 125
+            lerp: [ {name: 'y', v1: desty} ]
+          )
+      @record_sprites = @record_sprites[width..]
+    else
+      sprite.animations = @animatePopIn(1, {x:sprite.x, y:sprite.y})
+
+
+    @advanceNextRecordSprite(1)
     @sprites.push(sprite)
 
 
