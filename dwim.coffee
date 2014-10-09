@@ -1,8 +1,8 @@
 # general directions
-UP = (theta: Math.PI/2, dx: 0, dy: -1)
-LEFT = (theta: Math.PI, dx: -1, dy: 0)
-RIGHT = (theta: 0, dx: 1, dy: 0)
-DOWN = (theta: -Math.PI/2, dx: 0, dy: 1)
+UP = (theta: Math.PI/2, dx: 0, dy: -1, name: 'up')
+LEFT = (theta: Math.PI, dx: -1, dy: 0, name: 'left')
+RIGHT = (theta: 0, dx: 1, dy: 0, name: 'right')
+DOWN = (theta: -Math.PI/2, dx: 0, dy: 1, name: 'down')
 
 keymap =
   # traditional wasd
@@ -122,24 +122,7 @@ class Dwim
     @state = new DwimState(@level)
     gfx = @gfx = new window.DwimGraphics(@parent_div, @state)
 
-    @bot_sprite =
-      # this of course all belongs in graphics
-      computePos: =>
-        x: (@state.bot.x+.5)*@gfx.block+@gfx.board_dims.x-.5
-        y: (@state.bot.y+.5)*@gfx.block+@gfx.board_dims.y-.5
-      render: (ctx) ->
-         ctx.strokeStyle = 'white'
-         ctx.fillStyle = 'black'
-         stretch = 2*(1-Math.abs(@t-.5))
-         if @dir == UP or @dir == DOWN
-           ctx.scale(1/stretch, stretch)
-         else
-           ctx.scale(stretch, 1/stretch)
-         ctx.lineWidth = 1.5
-         gfx.renderShape('circle', gfx.block*.4, true)
-      animations: []
-      leftover_t: 0
-    {x:@bot_sprite.x, y:@bot_sprite.y} = @bot_sprite.computePos()
+    @bot_sprite = @gfx.makeBotSprite()
     @gfx.sprites.push(@bot_sprite)
 
   startRender: ->
@@ -161,44 +144,9 @@ class Dwim
       dir = keymap[key]
       old_pos = @bot_sprite.computePos()
       if @state.requestBotMove(dir)
-        new_pos = @bot_sprite.computePos()
-        @bot_sprite.animations.push(
-          duration: 150
-          lerp: [ {name: 't', v0: 0, v1: 1},
-                  {name: 'x', v0: old_pos.x, v1: new_pos.x},
-                  {name: 'y', v0: old_pos.y, v1: new_pos.y}
-                ]
-          set: [ {name: 'dir', v: dir} ]
-        )
+        @bot_sprite.animateMove(old_pos, dir)
       else
-        howfar = .15*@gfx.block
-        new_pos = x: old_pos.x+dir.dx*howfar, y: old_pos.y+dir.dy*howfar
-        @bot_sprite.animations.push(
-          duration: 15
-          lerp: [{name: 't', v0: 0, v1: .1},
-                 {name: 'x', v0: old_pos.x, v1: new_pos.x},
-                 {name: 'y', v0: old_pos.y, v1: new_pos.y}
-                ]
-          set: [ {name: 'dir', v: dir} ]
-        )
-        @bot_sprite.animations.push(
-          duration: 50
-          lerp: [{name: 't', v0: .1, v1: 0}]
-        )
-        @bot_sprite.animations.push(
-          duration: 50
-          lerp: [{name: 't', v0: 0, v1: .1},
-                 {name: 'x', v0: new_pos.x, v1: (new_pos.x+old_pos.x)/2},
-                 {name: 'y', v0: new_pos.y, v1: (new_pos.y+old_pos.y)/2}
-                ]
-        )
-        @bot_sprite.animations.push(
-          duration: 50
-          lerp: [{name: 't', v0: .1, v1: 0},
-                {name: 'x', v0: (new_pos.x+old_pos.x)/2, v1: old_pos.x},
-                {name: 'y', v0: (new_pos.y+old_pos.y)/2, v1: old_pos.y}
-               ]
-        )
+        @bot_sprite.animateBump(old_pos, dir)
 
     if not @rendering and @bot_sprite.animations.length > 0
       requestAnimationFrame(@render)

@@ -70,21 +70,7 @@ class DwimGraphics
     @ctx.fillStyle = 'black'
     @ctx.fillRect(0, 0, @cnv.width, @cnv.height)
 
-    # grid
-    @ctx.save()
-    @ctx.translate(@board_dims.x, @board_dims.y)
-    @ctx.strokeStyle = @grid_stroke_style
-    @ctx.fillStyle = @program_fill_style
-    @ctx.lineWidth = 1
-    for x in [0...@game_state.Wi]
-      for y in [0...@game_state.Hi]
-        switch @game_state.level[x][y].type
-          when 'empty'
-            @ctx.strokeRect(x*@block-.5, y*@block-.5, @block, @block)
-          when 'program'
-            @ctx.fillRect(x*@block-.5, y*@block-.5, @block, @block)
-            @ctx.strokeRect(x*@block-.5, y*@block-.5, @block, @block)
-    @ctx.restore()
+    @renderGrid()
 
     @ctx.restore()
 
@@ -136,7 +122,7 @@ class DwimGraphics
     for sprite in @sprites
       @ctx.save()
       @ctx.translate(sprite.x, sprite.y)
-      sprite.render(@ctx)
+      sprite.render(sprite)
       @ctx.restore()
 
     return
@@ -144,7 +130,13 @@ class DwimGraphics
   renderFG: ->
     @ctx.save()
 
-    # outlines
+    @renderWalls()
+
+    @ctx.restore()
+
+################
+
+  renderWalls: ->
     @ctx.save()
     @ctx.translate(@board_dims.x, @board_dims.y)
     @ctx.lineWidth = 2
@@ -157,10 +149,90 @@ class DwimGraphics
     @ctx.stroke()
     @ctx.restore()
 
+  renderGrid: ->
+    @ctx.save()
+    @ctx.translate(@board_dims.x, @board_dims.y)
+    @ctx.strokeStyle = @grid_stroke_style
+    @ctx.fillStyle = @program_fill_style
+    @ctx.lineWidth = 1
+    for x in [0...@game_state.Wi]
+      for y in [0...@game_state.Hi]
+        switch @game_state.level[x][y].type
+          when 'empty'
+            @ctx.strokeRect(x*@block-.5, y*@block-.5, @block, @block)
+          when 'program'
+            @ctx.fillRect(x*@block-.5, y*@block-.5, @block, @block)
+            @ctx.strokeRect(x*@block-.5, y*@block-.5, @block, @block)
     @ctx.restore()
 
-################
+  renderBot: (sprite) =>
+    @ctx.strokeStyle = 'white'
+    @ctx.fillStyle = 'black'
+    stretch = 2*(1-Math.abs(sprite.t-.5))
+    switch sprite.dir.name
+      when 'up', 'down'
+        @ctx.scale(1/stretch, stretch)
+      else
+        @ctx.scale(stretch, 1/stretch)
+    @ctx.lineWidth = 1.5
+    @renderShape('circle', @block*.4, true)
 
+  makeBotSprite: ->
+    gfx = this
+    bot =
+      computePos: =>
+        x: (@game_state.bot.x+.5)*@block+@board_dims.x-.5
+        y: (@game_state.bot.y+.5)*@block+@board_dims.y-.5
+      render: @renderBot
+      animations: []
+      t: 0
+      leftover_t: 0
+      dir: {name: 'down'}
+      animateMove: (old_pos, dir) ->
+        new_pos = @computePos()
+        @animations.push(
+          duration: 150
+          lerp: [ {name: 't', v0: 0, v1: 1},
+                  {name: 'x', v0: old_pos.x, v1: new_pos.x},
+                  {name: 'y', v0: old_pos.y, v1: new_pos.y}
+                ]
+          set: [ {name: 'dir', v: dir} ]
+        )
+      animateBump: (old_pos, dir) ->
+        howfar = .15*gfx.block
+        new_pos = x: old_pos.x+dir.dx*howfar, y: old_pos.y+dir.dy*howfar
+        @animations.push(
+          duration: 15
+          lerp: [{name: 't', v0: 0, v1: .1},
+                 {name: 'x', v0: old_pos.x, v1: new_pos.x},
+                 {name: 'y', v0: old_pos.y, v1: new_pos.y}
+                ]
+          set: [ {name: 'dir', v: dir} ]
+        )
+        @animations.push(
+          duration: 50
+          lerp: [{name: 't', v0: .1, v1: 0}]
+        )
+        @animations.push(
+          duration: 50
+          lerp: [{name: 't', v0: 0, v1: .1},
+                 {name: 'x', v0: new_pos.x, v1: (new_pos.x+old_pos.x)/2},
+                 {name: 'y', v0: new_pos.y, v1: (new_pos.y+old_pos.y)/2}
+                ]
+        )
+        @animations.push(
+          duration: 50
+          lerp: [{name: 't', v0: .1, v1: 0},
+                {name: 'x', v0: (new_pos.x+old_pos.x)/2, v1: old_pos.x},
+                {name: 'y', v0: (new_pos.y+old_pos.y)/2, v1: old_pos.y}
+               ]
+        )
+
+    {x:bot.x, y:bot.y} = bot.computePos()
+
+    return bot
+
+################
 
   renderArrow: (dir, size) ->
     as = size*.75  # arrow size
