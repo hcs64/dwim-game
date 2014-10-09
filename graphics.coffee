@@ -57,8 +57,9 @@ class DwimGraphics
 
 ################
 
-  render: ->
+  render: (t) ->
     @renderBG()
+    @animateSprites(t)
     @renderSprites()
     @renderFG()
 
@@ -87,6 +88,50 @@ class DwimGraphics
 
     @ctx.restore()
 
+  animateSprites: (absolute_t) ->
+    for sprite in @sprites
+      do_next = true
+      while do_next and sprite.animations.length > 0
+        do_next = false
+        anim = sprite.animations[0]
+
+        # set constant values
+        if anim.set?
+          for property in anim.set
+            sprite[property.name] = property.v
+
+        # track start time
+        if not anim.start_t?
+          anim.start_t = absolute_t
+          if sprite.leftover_t?
+            anim.start_t -= sprite.leftover_t
+          sprite.leftover_t = 0
+        t = (absolute_t - anim.start_t) / anim.duration
+
+        # interpolate
+        if t >= 1
+          # hit the end of the animation
+          sprite.leftover_t = absolute_t - (anim.start_t + anim.duration)
+          sprite.animations.shift()
+          do_next = true
+
+          if anim.lerp?
+            for property in anim.lerp
+              sprite[property.name] = property.v1
+        else
+          if anim.lerp?
+            for property in anim.lerp
+              sprite[property.name] =
+                (property.v1 - property.v0) * t + property.v0
+
+      sprite.leftover_t = 0
+
+  isAnimating: () ->
+    for sprite in @sprites
+      if sprite.animations? and sprite.animations.length > 0
+        return true
+    return false
+ 
   renderSprites: ->
     for sprite in @sprites
       @ctx.save()

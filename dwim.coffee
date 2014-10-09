@@ -147,34 +147,9 @@ class Dwim
     rendering = true
 
   render: (absolute_t) =>
-    do_next = true
-    while do_next and @bot_sprite.animations.length > 0
-      do_next = false
-      anim = @bot_sprite.animations[0]
-      @bot_sprite.dir = anim.dir
-      if not anim.start_t?
-        anim.start_t = absolute_t
-        anim.start_t -= @bot_sprite.leftover_t
-        @bot_sprite.leftover_t = 0
-      t = (absolute_t - anim.start_t) / anim.duration
+    @gfx.render(absolute_t)
 
-      if t >= 1
-        @bot_sprite.leftover_t = absolute_t - (anim.start_t + anim.duration)
-        @bot_sprite.animations.shift()
-        do_next = true
-        @bot_sprite.x = anim.x1
-        @bot_sprite.y = anim.y1
-        @bot_sprite.t = anim.t1
-      else
-        @bot_sprite.x = (anim.x1 - anim.x0) * t + anim.x0
-        @bot_sprite.y = (anim.y1 - anim.y0) * t + anim.y0
-        @bot_sprite.t = (anim.t1 - anim.t0) * t + anim.t0
-
-
-    @bot_sprite.leftover_t = 0
-    @gfx.render()
-
-    if @bot_sprite.animations.length > 0
+    if @gfx.isAnimating()
       requestAnimationFrame(@render)
       @rendering = true
     else
@@ -189,41 +164,40 @@ class Dwim
         new_pos = @bot_sprite.computePos()
         @bot_sprite.animations.push(
           duration: 150
-          t0: 0, t1: 1
-          x0: old_pos.x, y0: old_pos.y
-          x1: new_pos.x, y1: new_pos.y
-          dir: dir
+          lerp: [ {name: 't', v0: 0, v1: 1},
+                  {name: 'x', v0: old_pos.x, v1: new_pos.x},
+                  {name: 'y', v0: old_pos.y, v1: new_pos.y}
+                ]
+          set: [ {name: 'dir', v: dir} ]
         )
       else
         howfar = .15*@gfx.block
         new_pos = x: old_pos.x+dir.dx*howfar, y: old_pos.y+dir.dy*howfar
         @bot_sprite.animations.push(
           duration: 15
-          t0: 0, t1: .10
-          x0: old_pos.x, y0: old_pos.y
-          x1: new_pos.x, y1: new_pos.y
-          dir: dir
+          lerp: [{name: 't', v0: 0, v1: .1},
+                 {name: 'x', v0: old_pos.x, v1: new_pos.x},
+                 {name: 'y', v0: old_pos.y, v1: new_pos.y}
+                ]
+          set: [ {name: 'dir', v: dir} ]
         )
         @bot_sprite.animations.push(
           duration: 50
-          t0: .10, t1: 0
-          x0: new_pos.x, y0: new_pos.y
-          x1: new_pos.x, y1: new_pos.y
-          dir: dir
+          lerp: [{name: 't', v0: .1, v1: 0}]
         )
         @bot_sprite.animations.push(
           duration: 50
-          t0: 0, t1: .1
-          x0: new_pos.x, y0: new_pos.y
-          x1: (new_pos.x+old_pos.x)/2, y1: (new_pos.y+old_pos.y)/2
-          dir: dir
+          lerp: [{name: 't', v0: 0, v1: .1},
+                 {name: 'x', v0: new_pos.x, v1: (new_pos.x+old_pos.x)/2},
+                 {name: 'y', v0: new_pos.y, v1: (new_pos.y+old_pos.y)/2}
+                ]
         )
         @bot_sprite.animations.push(
           duration: 50
-          t0: .1, t1: 0
-          x0: (new_pos.x+old_pos.x)/2, y0: (new_pos.y+old_pos.y)/2
-          x1: old_pos.x, y1: old_pos.y
-          dir: dir
+          lerp: [{name: 't', v0: .1, v1: 0},
+                {name: 'x', v0: (new_pos.x+old_pos.x)/2, v1: old_pos.x},
+                {name: 'y', v0: (new_pos.y+old_pos.y)/2, v1: old_pos.y}
+               ]
         )
 
     if not @rendering and @bot_sprite.animations.length > 0
