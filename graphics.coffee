@@ -456,7 +456,7 @@ class DwimGraphics
 
     @sprites.push(sprite)
 
-  addProgramSprites: (delay=0) ->
+  addProgramSprites: () ->
     new_sprites = []
     for command in @game_state.current_program
       height = @record_dims.Hi
@@ -477,9 +477,6 @@ class DwimGraphics
             @renderShape(@instruction_names[sprite.command], bs)
         clock: @record_sprite_clock
         animations: []
-
-      if delay > 0
-        sprite.animations.push({duration: delay})
 
       while sprite.x > @record_dims.x + @record_dims.width
         sprite.x -= @record_dims.width
@@ -540,10 +537,6 @@ class DwimGraphics
     @record_sprites = @record_sprites[width..]
 
     @advanceNextRecordSprite(0)
-
-  delaySpriteAnimation: (delay) ->
-    for sprite in @sprites
-      sprite.animations.push( {duration: delay} )
 
 ################
 
