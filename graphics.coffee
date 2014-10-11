@@ -35,6 +35,12 @@ class DwimGraphics
     @parent_div.appendChild(@cnv)
     @ctx = @cnv.getContext('2d')
 
+  instruction_names:
+    s: 'square'
+    c: 'star'
+    d: 'diamond'
+    h: 'hex'
+
   computeOutlines: () ->
     @outline_links = []
 
@@ -256,6 +262,72 @@ class DwimGraphics
 
     return bot
 
+  renderMode: (mode) =>
+    ocs = @block
+    ics = @block*.75
+
+    temp_inst = mode.instructions
+    if @game_state.current_instruction? and
+       not (@game_state.current_instruction in mode.instructions)
+      temp_inst = mode.instructions.concat([@game_state.current_instruction])
+
+    len = temp_inst.length
+
+    @ctx.strokeStyle = 'white'
+
+    # container
+    @ctx.beginPath()
+    @ctx.moveTo(0,0)
+    @ctx.lineTo(ocs * 2, 0)
+    @ctx.lineTo(ocs * 2, ocs * len)
+    @ctx.lineTo(0, ocs * len)
+    @ctx.closePath()
+    @ctx.stroke()
+
+    # vertical divider
+    @ctx.beginPath()
+    @ctx.moveTo(ocs, 0)
+    @ctx.lineTo(ocs, ocs * len)
+    @ctx.stroke()
+
+    # horizontal dividers
+    for idx in [1...len]
+      @ctx.beginPath()
+      @ctx.moveTo(0, ocs * idx)
+      @ctx.lineTo(ocs * 2, ocs * idx)
+      @ctx.stroke()
+    
+    # symbols
+    @ctx.save()
+    @ctx.translate(ocs/2, ocs/2)
+    for char in temp_inst
+      @renderShape(@instruction_names[char], ics/2)
+      @ctx.translate(0, ocs)
+    @ctx.restore()
+
+    # commands (if present)
+    @ctx.save()
+    @ctx.translate(ocs*3/2, ocs/2)
+    for idx in [0...len]
+      if idx of mode.commands
+        @renderCommand(mode.commands[idx], ics)
+      else
+        @renderShape('question', ics/2)
+
+      @ctx.translate(0, ocs)
+    @ctx.restore()
+
+    if @game_state.current_instruction?
+      idx = temp_inst.indexOf(@game_state.current_instruction)
+
+      @ctx.strokeRect((ocs-ics)/2, (ocs-ics)/2 + ocs*idx, ocs*2-(ocs-ics), ics)
+
+    # id
+    @ctx.save()
+    @ctx.translate(0,-@block)
+    @renderNumber(mode.id)
+    @ctx.restore()
+
   animatePopIn: (scale, pos) ->
     return [ {
       duration: 100
@@ -437,5 +509,66 @@ class DwimGraphics
     @ctx.stroke()
     return
 
+  renderCommand: (command, size) ->
+    switch (command)
+      when 'up'
+        @renderArrow(UP.theta, size)
+      when 'down'
+        @renderArrow(DOWN.theta, size)
+      when 'left'
+        @renderArrow(LEFT.theta, size)
+      when 'right'
+        @renderArrow(RIGHT.theta, size)
+    return
+
+  digit_graphics: [
+    # 0
+    [ [[0,0],[4,0],[4,4],[0,4],[0,0]] ],
+    # 1
+    [ [[2,0],[2,4]] ],
+    # 2
+    [ [[0,0],[4,0],[4,2],[0,2],[0,4],[4,4]] ],
+    # 3
+    [ [[0,0],[4,0],[4,4],[0,4]],
+      [[0,2],[4,2]] ],
+    # 4
+    [ [[0,0],[0,2],[4,2]],
+      [[4,0],[4,4]] ],
+    # 5
+    [ [[4,0],[0,0],[0,2],[4,2],[4,4],[0,4]] ],
+    # 6
+    [ [[4,0],[0,0],[0,4],[4,4],[4,2],[0,2]] ],
+    # 7
+    [ [[0,0],[4,0],[4,4]] ],
+    # 8
+    [ [[0,0],[0,4],[4,4],[4,0],[0,0]],
+      [[0,2],[4,2]] ],
+    # 9
+    [ [[0,4],[4,4],[4,0],[0,0],[0,2],[4,2]] ]
+  ]
+
+  renderNumber: (n, scale = 4) ->
+    s = []
+    if n < 0 or n != Math.floor(n)
+      console.log("tried to render #{number}, only nonnegative integers supported")
+    if n == 0
+      s = [0]
+    while n > 0
+      s[s.length] = n % 10
+      n = Math.floor(n / 10)
+
+    @ctx.save()
+
+    for i in [s.length-1..0] by -1
+      @ctx.beginPath()
+      for line in @digit_graphics[s[i]]
+        @ctx.moveTo(line[0][0]*scale, line[0][1]*scale)
+        for point in line[1..]
+          @ctx.lineTo(point[0]*scale, point[1]*scale)
+      @ctx.stroke()
+
+      @ctx.translate(5*scale, 0)
+
+    @ctx.restore()
 
 window.DwimGraphics = DwimGraphics

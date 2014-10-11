@@ -1,8 +1,8 @@
 # general directions
-UP = (theta: Math.PI/2, dx: 0, dy: -1, name: 'up')
-LEFT = (theta: Math.PI, dx: -1, dy: 0, name: 'left')
-RIGHT = (theta: 0, dx: 1, dy: 0, name: 'right')
-DOWN = (theta: -Math.PI/2, dx: 0, dy: 1, name: 'down')
+window.UP = (theta: Math.PI/2, dx: 0, dy: -1, name: 'up')
+window.LEFT = (theta: Math.PI, dx: -1, dy: 0, name: 'left')
+window.RIGHT = (theta: 0, dx: 1, dy: 0, name: 'right')
+window.DOWN = (theta: -Math.PI/2, dx: 0, dy: 1, name: 'down')
 
 keymap =
   # traditional wasd
@@ -27,12 +27,6 @@ reverseDir = (dir) ->
     when RIGHT
       return LEFT
 
-
-instruction_names =
-  s: 'square'
-  c: 'star'
-  d: 'diamond'
-  h: 'hex'
 
 parseRanges = (ranges_string) ->
   point_list = []
@@ -124,6 +118,34 @@ class Dwim
 
     @bot_sprite = @gfx.makeBotSprite()
     @gfx.sprites.push(@bot_sprite)
+
+    @modes = [{
+      instructions: ['c','d']
+      commands: ['up','down']
+      id: 1},
+      {
+      instructions: ['c','d']
+      commands: ['left','up']
+      id: 2}
+      ]
+    @mode_sprites = []
+    @mode_sprites.push(
+      x: @gfx.mapping_dims.x+.5
+      y: @gfx.mapping_dims.y+.5
+      mode: @modes[0]
+      render: (sprite) ->
+        gfx.renderMode(sprite.mode)
+      animations: [])
+
+    @mode_sprites.push(
+      x: @gfx.mapping_dims.x+.5
+      y: @gfx.mapping_dims.y+.5+100
+      mode: @modes[1]
+      render: (sprite) ->
+        gfx.renderMode(sprite.mode)
+      animations: [])
+    @gfx.sprites.push(@mode_sprites[0])
+    @gfx.sprites.push(@mode_sprites[1])
 
   startRender: ->
     requestAnimationFrame(@render)
