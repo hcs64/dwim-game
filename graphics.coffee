@@ -291,15 +291,22 @@ class DwimGraphics
     @ctx.beginPath()
     @ctx.moveTo(0,0)
     @ctx.lineTo(ocs * 2, 0)
-    @ctx.lineTo(ocs * 2, ocs * len)
-    @ctx.lineTo(0, ocs * len)
+    if len == 0
+      @ctx.lineTo(ocs * 2, ocs)
+      @ctx.lineTo(0, ocs)
+    else
+      @ctx.lineTo(ocs * 2, ocs * len)
+      @ctx.lineTo(0, ocs * len)
     @ctx.closePath()
     @ctx.stroke()
 
     # vertical divider
     @ctx.beginPath()
     @ctx.moveTo(ocs, 0)
-    @ctx.lineTo(ocs, ocs * len)
+    if len == 0
+      @ctx.lineTo(ocs, ocs)
+    else
+      @ctx.lineTo(ocs, ocs * len)
     @ctx.stroke()
 
     # horizontal dividers
