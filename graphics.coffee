@@ -3,16 +3,16 @@ class DwimGraphics
     # constants of layout
     @block = 32
 
-    @record_dims =
+    @mapping_dims =
       x: 10
+      y: 10
+      width: @block*3
+      height: @block*10
+    @record_dims =
+      x: @mapping_dims.x + @mapping_dims.width + @block
       y: 10
       width: @block*10
       height: @block*3
-    @mapping_dims =
-      x: 10
-      y: @record_dims.x+@record_dims.height+@block,
-      width: @block*3
-      height: @block*10
     @board_dims =
       x: @mapping_dims.x+@mapping_dims.width+@block
       y: @record_dims.y+@record_dims.height+@block
@@ -271,14 +271,21 @@ class DwimGraphics
     ocs = @block
     ics = @block*.75
 
-    temp_inst = mode.instructions
-    if @game_state.current_instruction? and
-       not (@game_state.current_instruction in mode.instructions)
-      temp_inst = mode.instructions.concat([@game_state.current_instruction])
+    temp_sym = mode.symbols
+    current_symbol = null
+    if mode == @game_state.current_mapping and
+       @game_state.current_program.length > 0 and
+       not (@game_state.current_program[0] in mode.symbols)
+      current_symbol = @game_state.current_program[0]
+      temp_sym = mode.symbols.concat([current_symbol])
 
-    len = temp_inst.length
+    len = temp_sym.length
 
     @ctx.strokeStyle = 'white'
+
+    # id
+    @renderNumber(mode.id)
+    @ctx.translate(0,@block)
 
     # container
     @ctx.beginPath()
@@ -305,7 +312,7 @@ class DwimGraphics
     # symbols
     @ctx.save()
     @ctx.translate(ocs/2, ocs/2)
-    for char in temp_inst
+    for char in temp_sym
       @renderShape(@instruction_names[char], ics/2)
       @ctx.translate(0, ocs)
     @ctx.restore()
@@ -313,25 +320,19 @@ class DwimGraphics
     # commands (if present)
     @ctx.save()
     @ctx.translate(ocs*3/2, ocs/2)
-    for idx in [0...len]
-      if idx of mode.commands
-        @renderCommand(mode.commands[idx], ics)
+    for sym in temp_sym
+      if sym of mode.lookup
+        @renderCommand(mode.lookup[sym].name, ics)
       else
         @renderShape('question', ics/2)
 
       @ctx.translate(0, ocs)
     @ctx.restore()
 
-    if @game_state.current_instruction?
-      idx = temp_inst.indexOf(@game_state.current_instruction)
+    if current_symbol?
+      idx = temp_sym.indexOf(current_symbol)
 
       @ctx.strokeRect((ocs-ics)/2, (ocs-ics)/2 + ocs*idx, ocs*2-(ocs-ics), ics)
-
-    # id
-    @ctx.save()
-    @ctx.translate(0,-@block)
-    @renderNumber(mode.id)
-    @ctx.restore()
 
   animatePopIn: (scale, pos) ->
     return [ {

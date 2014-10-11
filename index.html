@@ -52,7 +52,7 @@ b: {
   ],
   mappings: [
     /*{c: RIGHT, d: UP}*/
-    {c: RIGHT}
+    { id: 1, lookup: {c: RIGHT}, symbols: ['c'] }
   ],
 },
 // 0, intro?
@@ -70,7 +70,7 @@ b: {
     '0-9,3-6',
     '3-6,0-9'
   ],
-  mappings: [{}],
+  mappings: [{id: 1, lookup: {}, symbols: []}],
   next_level: '1',
 },
 // 1, can change dir

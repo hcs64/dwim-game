@@ -118,13 +118,15 @@ class DwimState
     return true
 
   mappingLookup: (mapping, symbol) ->
-    if symbol of mapping
-      return mapping[symbol]
+    if symbol of mapping.lookup
+      return mapping.lookup[symbol]
     else
       return null
 
   mappingInsert: (mapping, symbol, command) ->
-    mapping[symbol] = command
+    mapping.lookup[symbol] = command
+    if not (symbol in mapping.symbols)
+      mapping.symbols.push(symbol)
     
   doWhatMustBeDone: () ->
     if @current_program.length == 0
@@ -164,33 +166,16 @@ class Dwim
     @bot_sprite = @gfx.makeBotSprite()
     @gfx.sprites.push(@bot_sprite)
 
-    @modes = [{
-      instructions: ['c','d']
-      commands: ['up','down']
-      id: 1},
-      {
-      instructions: ['c','d']
-      commands: ['left','up']
-      id: 2}
-      ]
     @mode_sprites = []
     @mode_sprites.push(
       x: @gfx.mapping_dims.x+.5
       y: @gfx.mapping_dims.y+.5
-      mode: @modes[0]
+      mode: @state.mappings[0]
       render: (sprite) ->
         gfx.renderMode(sprite.mode)
       animations: [])
 
-    @mode_sprites.push(
-      x: @gfx.mapping_dims.x+.5
-      y: @gfx.mapping_dims.y+.5+100
-      mode: @modes[1]
-      render: (sprite) ->
-        gfx.renderMode(sprite.mode)
-      animations: [])
     @gfx.sprites.push(@mode_sprites[0])
-    @gfx.sprites.push(@mode_sprites[1])
 
   startRender: ->
     requestAnimationFrame(@render)
