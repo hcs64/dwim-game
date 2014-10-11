@@ -20,6 +20,7 @@ class DwimGraphics
       height: @block*10
 
     @program_fill_style = '#0000c0'
+    @program_stroke_style = '#000040'
     @grid_stroke_style = '#404040'
 
     @computeOutlines()
@@ -183,13 +184,17 @@ class DwimGraphics
     @ctx.save()
     @ctx.translate(@board_dims.x, @board_dims.y)
     @ctx.strokeStyle = @grid_stroke_style
-    @ctx.fillStyle = @program_fill_style
     @ctx.lineWidth = 1
     for x in [0...@game_state.Wi]
       for y in [0...@game_state.Hi]
         switch @game_state.level[x][y].type
           when 'empty'
             @ctx.strokeRect(x*@block-.5, y*@block-.5, @block, @block)
+    @ctx.fillStyle = @program_fill_style
+    @ctx.strokeStyle = @program_stroke_style
+    for x in [0...@game_state.Wi]
+      for y in [0...@game_state.Hi]
+        switch @game_state.level[x][y].type
           when 'program'
             @ctx.fillRect(x*@block-.5, y*@block-.5, @block, @block)
             @ctx.strokeRect(x*@block-.5, y*@block-.5, @block, @block)
