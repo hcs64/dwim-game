@@ -12,7 +12,9 @@ class DwimGraphics
       x: @mapping_dims.x + @mapping_dims.width + @block
       y: 10
       width: @block*10
-      height: @block*3
+      height: @block*2
+      Wi: 10
+      Hi: 2
     @board_dims =
       x: @mapping_dims.x+@mapping_dims.width+@block
       y: @record_dims.y+@record_dims.height+@block
@@ -27,6 +29,7 @@ class DwimGraphics
 
     @sprites = []
     @record_sprites = []
+    @record_sprite_clock = 0
     @addNextRecordSprite()
 
     # construct the canvas
@@ -354,33 +357,52 @@ class DwimGraphics
     return [ { duration: 100, lerp: [{name: 'scale', v0: 1, v1: 0}] } ]
 
   addNextRecordSprite: ->
-    @next_record_sprite =
-      x: @record_dims.x + .5 * @block + .5
-      y: @record_dims.y + .5 * @block + .5
+    nrs = @next_record_sprite =
+      xi: 0
+      yi: 0
+      gfx: this
+      computePos: ->
+        x: @gfx.record_dims.x + (.5 + @xi) * @gfx.block + .5
+        y: @gfx.record_dims.y + (.5 + @yi) * @gfx.block + .5
       render: (sprite) =>
         @ctx.strokeStyle = 'white'
         @ctx.scale(sprite.scale, sprite.scale)
         @renderShape('square', @block*.625)
       scale: 1
+      clock: 0
       animations: []
-    @sprites.push(@next_record_sprite)
-  advanceNextRecordSprite: (count) ->
-    width = @record_dims.width/@block
-    x = @record_dims.x + (.5 + @record_sprites.length%width) * @block + .5
-    y = @record_dims.y + (.5 + @record_sprites.length//width) * @block + .5
+    {x:nrs.x, y:nrs.y} = nrs.computePos()
+    @sprites.push(nrs)
 
-    if @record_sprites.length%width == 0
+  advanceNextRecordSprite: (count) ->
+    nrs = @next_record_sprite
+    width = @record_dims.Wi
+    old_pos = {xi: nrs.xi, yi: nrs.yi}
+    nrs.clock += count
+    
+    nrs.xi = nrs.clock
+    nrs.yi = 0
+    if @record_sprites.length > 0
+      nrs.xi -= @record_sprites[0].clock
+
+    while nrs.xi >= width
+      nrs.xi -= width
+      nrs.yi += 1
+
+    {x:x, y:y} = nrs.computePos()
+
+    if nrs.yi != old_pos.yi
       # avoid diagonal flight
-      @next_record_sprite.animations.push(
+      nrs.animations.push(
         duration: 75
         lerp: [
-          {name: 'x', v1: @record_dims.x + .5*@block + @record_dims.width + .5}
+          {name: 'x', v1: old_pos.x + .5*@block}
           {name: 'scale', v0: 1, v1: 0}]
       )
-      @next_record_sprite.animations.push(
+      nrs.animations.push(
         duration: 50
         set: [ {name: 'y', v: y}, {name: 'scale', v: 1} ]
-        lerp: [ {name: 'x', v0: @record_dims.x - @block, v1: x} ]
+        lerp: [ {name: 'x', v0: x - @block, v1: x} ]
       )
 
     else
@@ -395,20 +417,28 @@ class DwimGraphics
         ]
       )
 
+  renderRecordSpriteArrow: (sprite) =>
+    if sprite.scale > 0
+      @ctx.scale(sprite.scale, sprite.scale)
+      if sprite.programmed
+        bs = @block * .45
+        @ctx.fillStyle = @program_fill_style
+        @ctx.fillRect(-bs, -bs, bs*2, bs*2)
+      @ctx.strokeStyle = 'white'
+      @renderArrow(sprite.dir.theta, @block)
 
-  addRecordSprite: (dir) ->
-    height = @record_dims.height/@block
-    width = @record_dims.width/@block
+  addRecordSprite: (dir, programmed) ->
+    height = @record_dims.Hi
+    width = @record_dims.Wi
 
     sprite =
       x: @record_dims.x + (.5 + @record_sprites.length) * @block + .5
       y: @record_dims.y + .5 * @block + .5
       scale: 0
-      render: =>
-        if sprite.scale > 0
-          @ctx.scale(sprite.scale, sprite.scale)
-          @ctx.strokeStyle = 'white'
-          @renderArrow(dir.theta, @block)
+      dir: dir
+      render: @renderRecordSpriteArrow
+      programmed: programmed
+      clock: @record_sprite_clock
       animations: []
 
     while sprite.x > @record_dims.x + @record_dims.width
@@ -416,44 +446,103 @@ class DwimGraphics
       sprite.y += @block
 
     @record_sprites.push(sprite)
+    @record_sprite_clock += 1
 
     if @record_sprites.length == height * width
-      for old_sprite in @record_sprites[0...width]
-        old_sprite.animations = [
-          duration: 125
-          lerp: [ {name: 'scale', v0: 1, v1: 0},
-                  {name: 'y', v1: @record_dims.y-@block} ]
-          remove_on_finish: true
-        ]
-      for old_sprite,i in @record_sprites[width..]
-        desty = @record_dims.y+(.5  + i//width)*@block + .5
-        if old_sprite == sprite
-          # this does a mix of pop in and scroll up
-          sprite.animations.push(
-            duration: 100
-            lerp: [ {name: 'y', v0: sprite.y, v1: (desty-sprite.y)*(100/125)+sprite.y},
-                    {name: 'scale', v0: 0, v1: 1.25}
-                  ]
-          )
-          sprite.animations.push(
-            duration: 25
-            lerp: [ {name: 'y', v1: desty},
-                    {name: 'scale', v1: 1}
-                  ]
-          )
-        else
-          old_sprite.animations.push(
-            duration: 125
-            lerp: [ {name: 'y', v1: desty} ]
-          )
-      @record_sprites = @record_sprites[width..]
+      @scrollRecordSprites([sprite])
     else
       sprite.animations = @animatePopIn(1, {x:sprite.x, y:sprite.y})
 
-
-    @advanceNextRecordSprite(1)
     @sprites.push(sprite)
 
+  addProgramSprites: (delay=0) ->
+    new_sprites = []
+    for command in @game_state.current_program
+      height = @record_dims.Hi
+      width = @record_dims.Wi
+
+      sprite =
+        x: @record_dims.x + (.5 + @record_sprites.length) * @block + .5
+        y: @record_dims.y + .5 * @block + .5
+        scale: 0
+        command: command
+        render: (sprite) =>
+          if sprite.scale > 0
+            @ctx.scale(sprite.scale, sprite.scale)
+            bs = @block * .45
+            @ctx.fillStyle = @program_fill_style
+            @ctx.fillRect(-bs, -bs, bs*2, bs*2)
+            @ctx.strokeStyle = 'white'
+            @renderShape(@instruction_names[sprite.command], bs)
+        clock: @record_sprite_clock
+        animations: []
+
+      if delay > 0
+        sprite.animations.push({duration: delay})
+
+      while sprite.x > @record_dims.x + @record_dims.width
+        sprite.x -= @record_dims.width
+        sprite.y += @block
+
+      @record_sprites.push(sprite)
+      @record_sprite_clock += 1
+      new_sprites.push(sprite)
+
+    if @record_sprites.length >= height * width
+      @scrollRecordSprites(new_sprites)
+    else
+      for sprite in new_sprites
+        sprite.animations = @animatePopIn(1, {x:sprite.x, y:sprite.y})
+
+    @sprites = @sprites.concat(new_sprites)
+        
+  replaceNextRecordSprite: (dir) ->
+    for sprite in @record_sprites
+      if sprite.clock == @next_record_sprite.clock
+        sprite.render = @renderRecordSpriteArrow
+        sprite.dir = dir
+        sprite.programmed = true
+        sprite.animations = @animatePopIn(1, {x:sprite.x, y:sprite.y})
+
+  scrollRecordSprites: (new_sprites) ->
+    width = @record_dims.Wi
+    for sprite in @record_sprites[0...width]
+      sprite.animations.push(
+        duration: 125
+        lerp: [ {name: 'scale', v0: 1, v1: 0},
+                {name: 'y', v1: @record_dims.y-@block} ]
+        remove_on_finish: true
+      )
+      
+    for sprite,i in @record_sprites[width..]
+      desty = @record_dims.y+(.5  + i//width)*@block + .5
+      if sprite in new_sprites
+        # this does a mix of pop in and scroll up
+        sprite.animations.push(
+          duration: 100
+          lerp: [ {name: 'y', v1: (desty-sprite.y)*(100/125)+sprite.y},
+                  {name: 'scale', v0: 0, v1: 1.25}
+                ]
+        )
+        sprite.animations.push(
+          duration: 25
+          lerp: [ {name: 'y', v1: desty},
+                  {name: 'scale', v1: 1}
+                ]
+        )
+      else
+        sprite.animations = [
+          duration: 125
+          lerp: [ {name: 'y', v1: desty} ]
+          set: [ {name: 'scale', v: 1} ]
+        ]
+    @record_sprites = @record_sprites[width..]
+
+    @advanceNextRecordSprite(0)
+
+  delaySpriteAnimation: (delay) ->
+    for sprite in @sprites
+      sprite.animations.push( {duration: delay} )
 
 ################
 

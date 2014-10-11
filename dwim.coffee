@@ -214,7 +214,11 @@ class Dwim
       old_pos = @bot_sprite.computePos()
       if @state.requestBotMove(move)
         @bot_sprite.animateMove(old_pos, move)
-        @gfx.addRecordSprite(move)
+        @gfx.addRecordSprite(move, false)
+        @gfx.advanceNextRecordSprite(1)
+        
+        if @state.current_program.length > 0
+          @gfx.addProgramSprites(150)
       else
         @bot_sprite.animateBump(old_pos, move)
 
@@ -223,11 +227,17 @@ class Dwim
        @state.current_program.length > 0 and
        not @state.halted
       old_pos = @bot_sprite.computePos()
+      old_prog = @state.current_program
       {success: success, move: move} = @state.doWhatMustBeDone()
       if success
         new_pos = @bot_sprite.computePos()
         if old_pos.x != new_pos.x or old_pos.y != new_pos.y
           @bot_sprite.animateMove(old_pos, move)
+        @gfx.replaceNextRecordSprite(move)
+        @gfx.advanceNextRecordSprite(1)
+
+        if @state.current_program != old_prog
+          @gfx.addProgramSprites(150)
       else if move != null
         @bot_sprite.animateBump(old_pos, move)
         @state.halted = true
