@@ -277,10 +277,11 @@ class DwimGraphics
     temp_sym = mode.symbols
     current_symbol = null
     if mode == @game_state.current_mapping and
-       @game_state.current_program.length > 0 and
-       not (@game_state.current_program[0] in mode.symbols)
+       @game_state.current_program.length > 0
+
       current_symbol = @game_state.current_program[0]
-      temp_sym = mode.symbols.concat([current_symbol])
+      if not (@game_state.current_program[0] in mode.symbols)
+        temp_sym = mode.symbols.concat([current_symbol])
 
     len = temp_sym.length
 
