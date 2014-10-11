@@ -98,16 +98,61 @@ class DwimState
       throw 'overwriting border with exit'
     @level[level.exitpos.x][level.exitpos.y] = {type: 'exit'}
 
-    @available_mappings = level.available_mappings
+    @mappings = level.mappings
+    @current_mapping = @mappings[0]
+    @current_program = []
 
   requestBotMove: (dir) ->
     dest = {x: @bot.x + dir.dx, y: @bot.y + dir.dy}
-    if @level[dest.x][dest.y].type != 'obstacle'
-      @bot.x = dest.x
-      @bot.y = dest.y
-      return true
-    else
+    dest_block = @level[dest.x][dest.y]
+    if dest_block.type == 'obstacle'
       return false
+
+    @bot.x = dest.x
+    @bot.y = dest.y
+
+    if dest_block.type == 'program'
+      if @current_program.length == 0
+        @current_program = @programs[dest_block.id].code.split('')
+
+    return true
+
+  mappingLookup: (mapping, symbol) ->
+    if symbol of mapping
+      return mapping[symbol]
+    else
+      return null
+
+  mappingInsert: (mapping, symbol, command) ->
+    mapping[symbol] = command
+    
+  doWhatMustBeDone: () ->
+    if @current_program.length == 0
+      return {success: false, move: null}
+    symbol = @current_program[0]
+    command = @mappingLookup(@current_mapping, symbol)
+    if command == null
+      return {success: false, move: null}
+    
+    # TODO: not if mode switch
+    success = @requestBotMove(command)
+    if success
+      @current_program.shift()
+
+    return {success: success, move: command}
+
+  insertNeededMapping: (new_command) ->
+    if @current_program.length == 0
+      return false
+    symbol = @current_program[0]
+    command = @mappingLookup(@current_mapping, symbol)
+
+    if command != null
+      return false
+
+    @mappingInsert(@current_mapping, symbol, new_command)
+
+    return true
 
 ################
 
@@ -154,6 +199,8 @@ class Dwim
   render: (absolute_t) =>
     @gfx.render(absolute_t)
 
+    @processProgram()
+
     if @gfx.isAnimating()
       requestAnimationFrame(@render)
       @rendering = true
@@ -163,17 +210,42 @@ class Dwim
   keyboardCB: (key) =>
     t = Date.now()
     if key of keymap
-      dir = keymap[key]
-      old_pos = @bot_sprite.computePos()
-      if @state.requestBotMove(dir)
-        @bot_sprite.animateMove(old_pos, dir)
-        @gfx.addRecordSprite(dir)
-      else
-        @bot_sprite.animateBump(old_pos, dir)
+      move = keymap[key]
+      @processPlayerMove(move)
 
-    if not @rendering and @bot_sprite.animations.length > 0
+    if not @rendering and @gfx.isAnimating()
       requestAnimationFrame(@render)
       @rendering = true
+
+  processPlayerMove: (move) ->
+    if @state.current_program.length > 0
+      if not @state.insertNeededMapping(move)
+        return
+
+      @processProgram()
+
+    else
+
+      old_pos = @bot_sprite.computePos()
+      if @state.requestBotMove(move)
+        @bot_sprite.animateMove(old_pos, move)
+        @gfx.addRecordSprite(move)
+      else
+        @bot_sprite.animateBump(old_pos, move)
+
+  processProgram: ->
+    if @bot_sprite.animations.length == 0 and
+       @state.current_program.length > 0 and
+       not @state.halted
+      old_pos = @bot_sprite.computePos()
+      {success: success, move: move} = @state.doWhatMustBeDone()
+      if success
+        new_pos = @bot_sprite.computePos()
+        if old_pos.x != new_pos.x or old_pos.y != new_pos.y
+          @bot_sprite.animateMove(old_pos, move)
+      else if move != null
+        @bot_sprite.animateBump(old_pos, move)
+        @state.halted = true
 
 
 window.Dwim = Dwim
