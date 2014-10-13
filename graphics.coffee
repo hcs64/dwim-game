@@ -393,16 +393,25 @@ class DwimGraphics
 
     {x:x, y:y} = nrs.computePos()
 
-    @next_record_sprite.animations.push(
-      duration: 50
-    )
-    @next_record_sprite.animations.push(
-      duration: 75
-      lerp: [
-        {name: 'x', v1: x},
-        {name: 'y', v1: y}
-      ]
-    )
+    if count == 0
+      @next_record_sprite.animations.push(
+        duration: 125
+        lerp: [
+          {name: 'x', v1: x},
+          {name: 'y', v1: y}
+        ]
+      )
+    else
+      @next_record_sprite.animations.push(
+        duration: 50
+      )
+      @next_record_sprite.animations.push(
+        duration: 75
+        lerp: [
+          {name: 'x', v1: x},
+          {name: 'y', v1: y}
+        ]
+      )
 
   renderRecordSpriteArrow: (sprite) =>
     if sprite.scale > 0
@@ -475,7 +484,7 @@ class DwimGraphics
       new_sprites.push(sprite)
 
     if @record_sprites.length >= height * width
-      @scrollRecordSprites(new_sprites)
+      @scrollRecordSprites(new_sprites, delay)
     else
       for sprite in new_sprites
         if delay > 0
@@ -494,9 +503,11 @@ class DwimGraphics
         sprite.animations = @animatePopIn(1, {x:sprite.x, y:sprite.y})
     @advanceNextRecordSprite(1)
 
-  scrollRecordSprites: (new_sprites) ->
+  scrollRecordSprites: (new_sprites, delay=0) ->
     width = @record_dims.Wi
     for sprite in @record_sprites[0...width]
+      if delay > 0
+        sprite.animations.push({duration: delay})
       sprite.animations.push(
         duration: 125
         lerp: [ {name: 'scale', v0: 1, v1: 0},
@@ -505,6 +516,8 @@ class DwimGraphics
       )
       
     for sprite,i in @record_sprites[width..]
+      if delay > 0
+        sprite.animations = [{duration: delay}]
       desty = @record_dims.y+(.5  + i//width)*@block + .5
       if sprite in new_sprites
         # this does a mix of pop in and scroll up
@@ -521,11 +534,11 @@ class DwimGraphics
                 ]
         )
       else
-        sprite.animations = [
+        sprite.animations.push(
           duration: 125
           lerp: [ {name: 'y', v1: desty} ]
           set: [ {name: 'scale', v: 1} ]
-        ]
+        )
     @record_sprites = @record_sprites[width..]
 
     @advanceNextRecordSprite(0)
