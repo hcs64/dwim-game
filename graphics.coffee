@@ -146,6 +146,10 @@ class DwimGraphics
         to_keep.push(sprite)
     @sprites = to_keep
 
+  delaySprites: (delay) ->
+    for sprite in @sprites
+      sprite.animations.push({duration: delay})
+
   isAnimating: () ->
     for sprite in @sprites
       if sprite.animations? and sprite.animations.length > 0
@@ -394,6 +398,7 @@ class DwimGraphics
     {x:x, y:y} = nrs.computePos()
 
     if count == 0
+      # everything is scrolling
       @next_record_sprite.animations.push(
         duration: 125
         lerp: [
@@ -402,6 +407,7 @@ class DwimGraphics
         ]
       )
     else
+      # wait a bit for pop
       @next_record_sprite.animations.push(
         duration: 50
       )
@@ -423,6 +429,10 @@ class DwimGraphics
       @ctx.strokeStyle = 'white'
       @renderArrow(sprite.dir.theta, @block)
 
+  # record sprite insertion behaviors
+  # normal: pop in
+  # last column in all-but-last row: pop
+  # last column in last row: pop and scroll
   addRecordSprite: (dir, programmed) ->
     height = @record_dims.Hi
     width = @record_dims.Wi
@@ -484,7 +494,7 @@ class DwimGraphics
       new_sprites.push(sprite)
 
     if @record_sprites.length >= height * width
-      @scrollRecordSprites(new_sprites, delay)
+      @scrollRecordSprites(new_sprites)
     else
       for sprite in new_sprites
         if delay > 0
@@ -503,11 +513,9 @@ class DwimGraphics
         sprite.animations = @animatePopIn(1, {x:sprite.x, y:sprite.y})
     @advanceNextRecordSprite(1)
 
-  scrollRecordSprites: (new_sprites, delay=0) ->
+  scrollRecordSprites: (new_sprites) ->
     width = @record_dims.Wi
     for sprite in @record_sprites[0...width]
-      if delay > 0
-        sprite.animations.push({duration: delay})
       sprite.animations.push(
         duration: 125
         lerp: [ {name: 'scale', v0: 1, v1: 0},
@@ -516,8 +524,6 @@ class DwimGraphics
       )
       
     for sprite,i in @record_sprites[width..]
-      if delay > 0
-        sprite.animations = [{duration: delay}]
       desty = @record_dims.y+(.5  + i//width)*@block + .5
       if sprite in new_sprites
         # this does a mix of pop in and scroll up
@@ -534,11 +540,11 @@ class DwimGraphics
                 ]
         )
       else
-        sprite.animations.push(
+        sprite.animations = [
           duration: 125
           lerp: [ {name: 'y', v1: desty} ]
           set: [ {name: 'scale', v: 1} ]
-        )
+        ]
     @record_sprites = @record_sprites[width..]
 
     @advanceNextRecordSprite(0)
