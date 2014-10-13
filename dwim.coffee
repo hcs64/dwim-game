@@ -217,9 +217,7 @@ class Dwim
         @gfx.addRecordSprite(move, false)
         
         if @state.current_program.length > 0
-          @gfx.addProgramSprites()
-
-        @gfx.advanceNextRecordSprite(1)
+          @gfx.addProgramSprites(150)
       else
         @bot_sprite.animateBump(old_pos, move)
 
@@ -237,9 +235,7 @@ class Dwim
         @gfx.replaceNextRecordSprite(move)
 
         if @state.current_program != old_prog
-          @gfx.addProgramSprites()
-
-        @gfx.advanceNextRecordSprite(1)
+          @gfx.addProgramSprites(150)
       else if move != null
         @bot_sprite.animateBump(old_pos, move)
         @state.halted = true

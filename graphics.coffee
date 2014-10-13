@@ -367,8 +367,9 @@ class DwimGraphics
         y: @gfx.record_dims.y + (.5 + @yi) * @gfx.block + .5
       render: (sprite) =>
         @ctx.strokeStyle = 'white'
-        @ctx.scale(sprite.scale, sprite.scale)
-        @renderShape('square', @block*.625)
+        if sprite.scale > 0
+          @ctx.scale(sprite.scale, sprite.scale)
+          @renderShape('square', @block*.625)
       scale: 1
       clock: 0
       animations: []
@@ -392,31 +393,16 @@ class DwimGraphics
 
     {x:x, y:y} = nrs.computePos()
 
-    if nrs.yi != old_pos.yi
-      # avoid diagonal flight
-      nrs.animations.push(
-        duration: 75
-        lerp: [
-          {name: 'x', v1: old_pos.x + .5*@block}
-          {name: 'scale', v0: 1, v1: 0}]
-      )
-      nrs.animations.push(
-        duration: 50
-        set: [ {name: 'y', v: y}, {name: 'scale', v: 1} ]
-        lerp: [ {name: 'x', v0: x - @block, v1: x} ]
-      )
-
-    else
-      @next_record_sprite.animations.push(
-        duration: 75
-      )
-      @next_record_sprite.animations.push(
-        duration: 50
-        lerp: [
-          {name: 'x', v1: x},
-          {name: 'y', v1: y}
-        ]
-      )
+    @next_record_sprite.animations.push(
+      duration: 50
+    )
+    @next_record_sprite.animations.push(
+      duration: 75
+      lerp: [
+        {name: 'x', v1: x},
+        {name: 'y', v1: y}
+      ]
+    )
 
   renderRecordSpriteArrow: (sprite) =>
     if sprite.scale > 0
@@ -454,9 +440,11 @@ class DwimGraphics
     else
       sprite.animations = @animatePopIn(1, {x:sprite.x, y:sprite.y})
 
+    @advanceNextRecordSprite(1)
+
     @sprites.push(sprite)
 
-  addProgramSprites: () ->
+  addProgramSprites: (delay = 0) ->
     new_sprites = []
     for command in @game_state.current_program
       height = @record_dims.Hi
@@ -490,7 +478,10 @@ class DwimGraphics
       @scrollRecordSprites(new_sprites)
     else
       for sprite in new_sprites
-        sprite.animations = @animatePopIn(1, {x:sprite.x, y:sprite.y})
+        if delay > 0
+          sprite.animations.push( {duration: delay} )
+        sprite.animations =
+          sprite.animations.concat(@animatePopIn(1, {x:sprite.x, y:sprite.y}))
 
     @sprites = @sprites.concat(new_sprites)
         
@@ -501,6 +492,7 @@ class DwimGraphics
         sprite.dir = dir
         sprite.programmed = true
         sprite.animations = @animatePopIn(1, {x:sprite.x, y:sprite.y})
+    @advanceNextRecordSprite(1)
 
   scrollRecordSprites: (new_sprites) ->
     width = @record_dims.Wi
