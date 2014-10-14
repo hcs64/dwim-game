@@ -45,6 +45,12 @@ class DwimGraphics
     d: 'diamond'
     h: 'hex'
 
+  instruction_colors:
+    s: '#c00000'  # red
+    c: '#00c000'  # green
+    d: '#0000c0'  # blue
+    h: '#00c0c0'  # light blue
+
   computeOutlines: () ->
     @outline_links = []
 
@@ -431,7 +437,7 @@ class DwimGraphics
       @ctx.scale(sprite.scale, sprite.scale)
       if sprite.programmed
         bs = @block * .45
-        @ctx.fillStyle = @program_fill_style
+        @ctx.fillStyle = @instruction_colors[sprite.command]
         @ctx.fillRect(-bs, -bs, bs*2, bs*2)
       @ctx.strokeStyle = 'white'
       @renderArrow(sprite.dir.theta, @block)
@@ -440,7 +446,7 @@ class DwimGraphics
   # normal: pop in
   # last column in all-but-last row: pop
   # last column in last row: pop and scroll
-  addRecordSprite: (dir, programmed) ->
+  addRecordSprite: (dir) ->
     height = @record_dims.Hi
     width = @record_dims.Wi
 
@@ -450,7 +456,7 @@ class DwimGraphics
       scale: 0
       dir: dir
       render: @renderRecordSpriteArrow
-      programmed: programmed
+      programmed: false
       clock: @record_sprite_clock
       animations: []
 
@@ -481,14 +487,13 @@ class DwimGraphics
         y: @record_dims.y + .5 * @block + .5
         scale: 0
         command: command
+        programmed: true
         render: (sprite) =>
           if sprite.scale > 0
             @ctx.scale(sprite.scale, sprite.scale)
             bs = @block * .45
-            @ctx.fillStyle = @program_fill_style
+            @ctx.fillStyle = @instruction_colors[sprite.command]
             @ctx.fillRect(-bs, -bs, bs*2, bs*2)
-            @ctx.strokeStyle = 'white'
-            @renderShape(@instruction_names[sprite.command], bs)
         clock: @record_sprite_clock
         animations: []
 

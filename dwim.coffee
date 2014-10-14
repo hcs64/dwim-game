@@ -215,7 +215,7 @@ class Dwim
       if @state.requestBotMove(move)
         @bot_sprite.animateMove(old_pos, move)
         
-        @gfx.addRecordSprite(move, false)
+        @gfx.addRecordSprite(move)
 
         if @state.current_program.length > 0
           @gfx.onAnimComplete( => @gfx.addProgramSprites())
