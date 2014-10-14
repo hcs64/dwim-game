@@ -164,7 +164,8 @@ class DwimGraphics
     return false
  
   renderSprites: ->
-    for sprite in @sprites
+    for idx in [@sprites.length-1..0]
+      sprite = @sprites[idx]
       @ctx.save()
       @ctx.translate(sprite.x, sprite.y)
       sprite.render(sprite)
@@ -346,10 +347,11 @@ class DwimGraphics
       yi: 0
       gfx: this
       computePos: ->
-        x: @gfx.record_dims.x + (.5 + @xi) * @gfx.block + .5
-        y: @gfx.record_dims.y + (.5 + @yi) * @gfx.block + .5
+        x: @gfx.record_dims.x + (.5 + @xi) * @gfx.block
+        y: @gfx.record_dims.y + (.5 + @yi) * @gfx.block
       render: (sprite) =>
         @ctx.strokeStyle = 'white'
+        @ctx.lineWidth = 2
         if sprite.scale > 0
           @ctx.scale(sprite.scale, sprite.scale)
           @renderShape('square', @block*.625)
