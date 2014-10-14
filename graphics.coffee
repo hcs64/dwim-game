@@ -306,47 +306,13 @@ class DwimGraphics
     @renderNumber(mode.id)
     @ctx.translate(0,@block)
 
-    # container
-    @ctx.beginPath()
-    @ctx.moveTo(0,0)
-    @ctx.lineTo(ocs * 2, 0)
-    if len == 0
-      @ctx.lineTo(ocs * 2, ocs)
-      @ctx.lineTo(0, ocs)
-    else
-      @ctx.lineTo(ocs * 2, ocs * len)
-      @ctx.lineTo(0, ocs * len)
-    @ctx.closePath()
-    @ctx.stroke()
-
-    # vertical divider
-    @ctx.beginPath()
-    @ctx.moveTo(ocs, 0)
-    if len == 0
-      @ctx.lineTo(ocs, ocs)
-    else
-      @ctx.lineTo(ocs, ocs * len)
-    @ctx.stroke()
-
-    # horizontal dividers
-    for idx in [1...len]
-      @ctx.beginPath()
-      @ctx.moveTo(0, ocs * idx)
-      @ctx.lineTo(ocs * 2, ocs * idx)
-      @ctx.stroke()
-    
-    # symbols
-    @ctx.save()
-    @ctx.translate(ocs/2, ocs/2)
-    for char in temp_sym
-      @renderShape(@instruction_names[char], ics/2)
-      @ctx.translate(0, ocs)
-    @ctx.restore()
-
     # commands (if present)
     @ctx.save()
-    @ctx.translate(ocs*3/2, ocs/2)
+    @ctx.translate(ocs/2, ocs/2)
     for sym in temp_sym
+      @ctx.fillStyle = @instruction_colors[sym]
+      @ctx.fillRect(-ocs/2-.5, -ocs/2-.5, ocs, ocs)
+      @ctx.strokeRect(-ocs/2, -ocs/2, ocs, ocs)
       if sym of mode.lookup
         @renderCommand(mode.lookup[sym].name, ics)
       else
@@ -358,7 +324,7 @@ class DwimGraphics
     if current_symbol?
       idx = temp_sym.indexOf(current_symbol)
 
-      @ctx.strokeRect((ocs-ics)/2, (ocs-ics)/2 + ocs*idx, ocs*2-(ocs-ics), ics)
+      @ctx.strokeRect((ocs-ics)/2, (ocs-ics)/2 + ocs*idx, ics, ics)
 
   animatePopIn: (anims, scale, pos) ->
     pop_0 =
