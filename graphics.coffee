@@ -21,8 +21,7 @@ class DwimGraphics
       width: @block*10
       height: @block*10
 
-    @program_fill_style = '#0000c0'
-    @program_stroke_style = '#000040'
+    @program_stroke_style = '#8000c0'
     @grid_stroke_style = '#404040'
 
     @computeOutlines()
@@ -199,14 +198,18 @@ class DwimGraphics
         switch @game_state.level[x][y].type
           when 'empty'
             @ctx.strokeRect(x*@block-.5, y*@block-.5, @block, @block)
-    @ctx.fillStyle = @program_fill_style
     @ctx.strokeStyle = @program_stroke_style
+    @ctx.lineWidth = 2
     for x in [0...@game_state.Wi]
       for y in [0...@game_state.Hi]
         switch @game_state.level[x][y].type
           when 'program'
-            @ctx.fillRect(x*@block-.5, y*@block-.5, @block, @block)
-            @ctx.strokeRect(x*@block-.5, y*@block-.5, @block, @block)
+            #@ctx.fillRect(x*@block-.5, y*@block-.5, @block, @block)
+            #@ctx.strokeRect(x*@block-.5, y*@block-.5, @block, @block)
+            @ctx.save()
+            @ctx.translate(x*@block-.5, y*@block-.5)
+            @renderShape('octagon', @block*.5)
+            @ctx.restore()
     @ctx.restore()
 
   renderBot: (sprite) =>
@@ -615,7 +618,20 @@ class DwimGraphics
         @ctx.lineTo(0, .625*r)
         @ctx.moveTo(0, .75*r)
         @ctx.lineTo(0, r)
-   
+      when 'octagon'
+        ics = radius*2
+        cb = radius*.5  #bevel
+        @ctx.beginPath()
+        @ctx.moveTo(0, cb)
+        @ctx.lineTo(cb, 0)
+        @ctx.lineTo(ics-cb, 0)
+        @ctx.lineTo(ics, cb)
+        @ctx.lineTo(ics, ics-cb)
+        @ctx.lineTo(ics-cb, ics)
+        @ctx.lineTo(cb, ics)
+        @ctx.lineTo(0, ics-cb)
+        @ctx.closePath()
+  
     if fill
       @ctx.fill()
     @ctx.stroke()
