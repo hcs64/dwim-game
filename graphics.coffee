@@ -28,6 +28,7 @@ class DwimGraphics
     @computeOutlines()
 
     @sprites = []
+    @anim_complete_callbacks = []
     @record_sprites = []
     @record_sprite_clock = 0
     @addNextRecordSprite()
@@ -85,6 +86,11 @@ class DwimGraphics
     @animateSprites(t)
     @renderSprites()
     @renderFG()
+
+    if not @isAnimating()
+      if @anim_complete_callbacks.length > 0
+        fcn = @anim_complete_callbacks.shift()
+        fcn()
 
   renderBG: ->
     @ctx.save()
@@ -145,10 +151,6 @@ class DwimGraphics
       if not remove
         to_keep.push(sprite)
     @sprites = to_keep
-
-  delaySprites: (delay) ->
-    for sprite in @sprites
-      sprite.animations.push({duration: delay})
 
   isAnimating: () ->
     for sprite in @sprites
@@ -349,17 +351,19 @@ class DwimGraphics
 
       @ctx.strokeRect((ocs-ics)/2, (ocs-ics)/2 + ocs*idx, ocs*2-(ocs-ics), ics)
 
-  animatePopIn: (scale, pos) ->
-    return [ {
+  animatePopIn: (anims, scale, pos) ->
+    pop_0 =
       duration: 100
       lerp: [{name: 'scale', v0: 0, v1: scale*1.25}]
-      set: [{name: 'x', v: pos.x}, {name: 'y', v: pos.y}]}
+    if pos?
+      pop_0.set = [{name: 'x', v: pos.x}, {name: 'y', v: pos.y}]
 
-      {duration: 25
-      lerp: [{name: 'scale', v0: scale*1.25, v1: scale}]}
-    ]
-  animatePopOut: ->
-    return [ { duration: 100, lerp: [{name: 'scale', v0: 1, v1: 0}] } ]
+    pop_1 =
+      duration: 25
+      lerp: [{name: 'scale', v0: scale*1.25, v1: scale}]
+
+    anims.push(pop_0)
+    anims.push(pop_1)
 
   addNextRecordSprite: ->
     nrs = @next_record_sprite =
@@ -457,13 +461,13 @@ class DwimGraphics
     if @record_sprites.length == height * width
       @scrollRecordSprites([sprite])
     else
-      sprite.animations = @animatePopIn(1, {x:sprite.x, y:sprite.y})
+      @animatePopIn(sprite.animations, 1, {x:sprite.x, y:sprite.y})
 
     @advanceNextRecordSprite(1)
 
     @sprites.push(sprite)
 
-  addProgramSprites: (delay = 0) ->
+  addProgramSprites: () ->
     new_sprites = []
     for command in @game_state.current_program
       height = @record_dims.Hi
@@ -497,10 +501,7 @@ class DwimGraphics
       @scrollRecordSprites(new_sprites)
     else
       for sprite in new_sprites
-        if delay > 0
-          sprite.animations.push( {duration: delay} )
-        sprite.animations =
-          sprite.animations.concat(@animatePopIn(1, {x:sprite.x, y:sprite.y}))
+        @animatePopIn(sprite.animations, 1, {x:sprite.x, y:sprite.y})
 
     @sprites = @sprites.concat(new_sprites)
         
@@ -510,7 +511,7 @@ class DwimGraphics
         sprite.render = @renderRecordSpriteArrow
         sprite.dir = dir
         sprite.programmed = true
-        sprite.animations = @animatePopIn(1, {x:sprite.x, y:sprite.y})
+        @animatePopIn(sprite.animations, 1)
     @advanceNextRecordSprite(1)
 
   scrollRecordSprites: (new_sprites) ->
@@ -523,7 +524,9 @@ class DwimGraphics
         remove_on_finish: true
       )
       
-    for sprite,i in @record_sprites[width..]
+    @record_sprites = @record_sprites[width..]
+
+    for sprite,i in @record_sprites
       desty = @record_dims.y+(.5  + i//width)*@block + .5
       if sprite in new_sprites
         # this does a mix of pop in and scroll up
@@ -545,9 +548,11 @@ class DwimGraphics
           lerp: [ {name: 'y', v1: desty} ]
           set: [ {name: 'scale', v: 1} ]
         ]
-    @record_sprites = @record_sprites[width..]
 
     @advanceNextRecordSprite(0)
+
+  onAnimComplete: (fcn) ->
+    @anim_complete_callbacks.push(fcn)
 
 ################
 
