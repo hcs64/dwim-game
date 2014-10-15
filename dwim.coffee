@@ -16,6 +16,12 @@ keymap =
   '<down>': DOWN
   '<right>': RIGHT
 
+mode_keymap =
+  '1': 0
+  '2': 1
+  '3': 2
+  '4': 3
+
 reverseDir = (dir) ->
   switch dir
     when UP
@@ -191,6 +197,9 @@ class Dwim
     if key of keymap
       move = keymap[key]
       @processPlayerMove(move)
+    else if key of mode_keymap
+      mode = mode_keymap[key]
+      @processModeChange(mode)
 
     if not @rendering and @gfx.isAnimating()
       requestAnimationFrame(@render)
@@ -215,6 +224,17 @@ class Dwim
           @gfx.onAnimComplete( => @gfx.addProgramSprites())
       else
         @bot_sprite.animateBump(old_pos, move)
+
+  processModeChange: (mode_idx) ->
+    if mode_idx == @state.current_mode.idx
+      return
+
+    if mode_idx >= @state.modes.length
+      return
+
+    @state.current_mode = @state.modes[mode_idx]
+    @gfx.animatePopIn(@mode_sprites[mode_idx].animations, 1, 1)
+    @gfx.animatePopIn(@bot_sprite.animations, 1, 1)
 
   processProgram: ->
     if @bot_sprite.animations.length == 0 and

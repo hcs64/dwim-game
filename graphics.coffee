@@ -245,6 +245,7 @@ class DwimGraphics
         @ctx.scale(1/stretch, stretch)
       else
         @ctx.scale(stretch, 1/stretch)
+    @ctx.scale(sprite.scale, sprite.scale)
     @ctx.lineWidth = 1.5
     if mode_appearance.circle
       @renderShape('circle', @block*.4, true)
@@ -260,6 +261,7 @@ class DwimGraphics
       render: @renderBot
       animations: []
       t: 0
+      scale: 1
       leftover_t: 0
       dir: {name: 'down'}
       animateMove: (old_pos, dir) ->
@@ -316,6 +318,7 @@ class DwimGraphics
         invert: @mode_appearance[i].invert
         circle: @mode_appearance[i].circle
         render: @renderModeSprite
+        scale: 1
         animations: []
       mode_sprites.push(sprite)
 
@@ -352,9 +355,9 @@ class DwimGraphics
     else
       @ctx.fillStyle = 'black'
     if sprite.circle
-      @renderShape('circle', @block*.4, true)
+      @renderShape('circle', @block*.4*sprite.scale, true)
     else
-      @renderShape('diamond', @block*.4, true)
+      @renderShape('diamond', @block*.4*sprite.scale, true)
     @ctx.restore()
 
     @ctx.translate(@block*.125,@block)
@@ -379,10 +382,10 @@ class DwimGraphics
 
       @ctx.strokeRect((ocs-ics)/2, (ocs-ics)/2 + ocs*idx, ics, ics)
 
-  animatePopIn: (anims, scale, pos) ->
+  animatePopIn: (anims, low_scale, scale, pos) ->
     pop_0 =
       duration: 100
-      lerp: [{name: 'scale', v0: 0, v1: scale*1.25}]
+      lerp: [{name: 'scale', v0: low_scale, v1: scale*1.25}]
     if pos?
       pop_0.set = [{name: 'x', v: pos.x}, {name: 'y', v: pos.y}]
 
@@ -490,7 +493,7 @@ class DwimGraphics
     if @record_sprites.length == height * width
       @scrollRecordSprites([sprite])
     else
-      @animatePopIn(sprite.animations, 1, {x:sprite.x, y:sprite.y})
+      @animatePopIn(sprite.animations, 0, 1, {x:sprite.x, y:sprite.y})
 
     @advanceNextRecordSprite(1)
 
@@ -529,7 +532,7 @@ class DwimGraphics
       @scrollRecordSprites(new_sprites)
     else
       for sprite in new_sprites
-        @animatePopIn(sprite.animations, 1, {x:sprite.x, y:sprite.y})
+        @animatePopIn(sprite.animations, 0, 1, {x:sprite.x, y:sprite.y})
 
     @sprites = @sprites.concat(new_sprites)
         
@@ -539,7 +542,7 @@ class DwimGraphics
         sprite.render = @renderRecordSpriteArrow
         sprite.dir = dir
         sprite.programmed = true
-        @animatePopIn(sprite.animations, 1)
+        @animatePopIn(sprite.animations, 1, 1)
     @advanceNextRecordSprite(1)
 
   scrollRecordSprites: (new_sprites) ->
