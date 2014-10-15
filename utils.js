@@ -122,3 +122,22 @@ registerKeyFunction = function (fn) {
 
 })();
 
+var registerMouseFunction;
+
+registerMouseFunction = function (element, fn) {
+  element.addEventListener('mousedown', function (e) {
+    fn('down', getCursorPosition(element, e));
+  });
+  element.addEventListener('mouseup', function (e) {
+    fn('up', getCursorPosition(element, e));
+  });
+  element.addEventListener('click', function (e) {
+    fn('click', getCursorPosition(element, e));
+  });
+  element.addEventListener('mousemove', function (e) {
+    fn('move', getCursorPosition(element, e));
+  });
+  element.addEventListener('mouseleave', function (e) {
+    fn('leave', null);
+  });
+};

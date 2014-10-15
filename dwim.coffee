@@ -1,8 +1,8 @@
 # general directions
-UP = (theta: Math.PI/2, dx: 0, dy: -1)
-LEFT = (theta: Math.PI, dx: -1, dy: 0)
-RIGHT = (theta: 0, dx: 1, dy: 0)
-DOWN = (theta: -Math.PI/2, dx: 0, dy: 1)
+window.UP = (theta: Math.PI/2, dx: 0, dy: -1, name: 'up')
+window.LEFT = (theta: Math.PI, dx: -1, dy: 0, name: 'left')
+window.RIGHT = (theta: 0, dx: 1, dy: 0, name: 'right')
+window.DOWN = (theta: -Math.PI/2, dx: 0, dy: 1, name: 'down')
 
 keymap =
   # traditional wasd
@@ -16,6 +16,12 @@ keymap =
   '<down>': DOWN
   '<right>': RIGHT
 
+mode_keymap =
+  '1': 0
+  '2': 1
+  '3': 2
+  '4': 3
+
 reverseDir = (dir) ->
   switch dir
     when UP
@@ -27,19 +33,6 @@ reverseDir = (dir) ->
     when RIGHT
       return LEFT
 
-g = window.dwim_graphics
-
-instruction_names =
-  s: 'square'
-  c: 'circle'
-  d: 'diamond'
-  h: 'hex'
-
-board_start = {x: 70, y: 168}
-program_start = {x: 20, y: 32}
-mapping_start = {x: 90, y: 10}
-menu_start = {x: 190, y: 10}
-menu_width = 140
 
 parseRanges = (ranges_string) ->
   point_list = []
@@ -59,573 +52,277 @@ parseRanges = (ranges_string) ->
 
   point_list
 
-class Dwim
-  constructor: (@parent_div) ->
 
-    @status_div = [
-      document.createElement('div'),
-      document.createElement('div')
-    ]
-    @cnv = document.createElement('canvas')
-    @status_div[0].className = 'status'
-    @status_div[1].className = 'status'
-    @parent_div.appendChild(@status_div[0])
-    @parent_div.appendChild(@status_div[1])
- 
-  start: (levels, level_id) ->
-    if level_id == 'end'
-      @status_div[0].innerHTML = "That's all for now"
-      @status_div[1].innerHTML = "Thanks for playing! -hcs"
-      return
-    else
-      console.log('start level ' + level_id)
+################
 
-    level = levels[level_id]
-
-    @botx = level.startpos.x
-    @boty = level.startpos.y
-    if level.startpos.dir?
-      @botdir = level.startpos.dir.theta
-    else
-      @botdir = RIGHT.theta
-
+class DwimState
+  constructor: (level) ->
     @Wi = level.dims.w
     @Hi = level.dims.h
-    @cnv.width  = @W = board_start.x + @Wi * g.cell_size
-    @cnv.height = @H = board_start.y + @Hi * g.cell_size
 
-    @parent_div.appendChild(@cnv)
+    @bot = {x: level.startpos.x, y: level.startpos.y}
 
-    @ctx = @cnv.getContext('2d')
-
-    @level = []
-    for x in [0...@Wi]
-      @level[x] = []
-      for y in [0..@Hi]
+    @level = {}
+    for x in [-1..@Wi]
+      @level[x] = {}
+      for y in [-1..@Hi]
         @level[x][y] = {type: 'empty'}
 
-    @obstacles = []
+    # border
+    for x in [-1..@Wi]
+      @level[x][-1] = {type: 'obstacle', id: 0}
+      @level[x][@Hi] = {type: 'obstacle', id: 0}
+    for y in [-1..@Hi]
+      @level[-1][y] = {type: 'obstacle', id: 0}
+      @level[@Wi][y] = {type: 'obstacle', id: 0}
+
+    # general obstacles
+    @obstacles = [{}]
     for obstacle in level.obstacles
       id = @obstacles.length
       @obstacles[id] = obstacle
 
       for {x:x, y:y} in parseRanges(obstacle)
+        if @level[x][y].type == 'obstacle' and @level[x][y].id == 0
+          throw 'overwriting border with lesser obstacle'
         @level[x][y] = {type: 'obstacle', id: id}
 
+    # programs
     @programs = []
     for program in level.programs
       id = @programs.length
       @programs[id] = program
 
       for {x:x, y:y} in parseRanges(program.loc)
+        if @level[x][y].type == 'obstacle' and @level[x][y].id == 0
+          throw 'overwriting border with program'
         @level[x][y] = {type: 'program', id: id}
 
+    # exit
+    if @level[level.exitpos.x][level.exitpos.y].type == 'obstacle' and
+       @level[level.exitpos.x][level.exitpos.y].id == 0
+      throw 'overwriting border with exit'
     @level[level.exitpos.x][level.exitpos.y] = {type: 'exit'}
 
-    @available_mappings = level.available_mappings
-
-    @active_program = null
-    @allowed_move = null
-    @mappings = [ new Mapping(0) ]
-    @active_mapping = null
-    @next_level_id = level.next_level
-    @mapping_menu = null
-    
-    @startInput()
-
-    @updateProgram()
-
-    @requestRender()
-
-  requestRender: ->
-    @renderCB()
-
-  startInput: ->
-    registerKeyFunction(@keyboardCB)
-
-  setStatus: (status1, status2) ->
-    if status1?
-      @status_div[0].innerHTML = status1
-    if status2?
-      @status_div[1].innerHTML = status2
-
-  setError: (error) ->
-    @setStatus('<span class="error">Error</a>',
-      '<span class="error">' + error + '</span>')
-
-  nextLevelLink: () ->
-    @setStatus('Completed!', "<a href=\"?#{@next_level_id}\">Next Level</a>")
-
-  renderCB: =>
-    g.clear(@ctx, @W, @H)
-
-    @ctx.save()
-    @ctx.translate(board_start.x, board_start.y)
-
-    for x in [0...@Wi]
-      for y in [0...@Hi]
-        switch @level[x][y].type
-          when 'empty'
-            true
-          when 'program'
-            @renderProgramCell(x, y)
-          when 'obstacle'
-            @renderObstacleCell(x, y)
-          when 'exit'
-            @renderExitCell(x, y)
-
-    g.renderBot(@ctx,
-        (@botx+.5)*g.cell_size,
-        (@boty+.5)*g.cell_size,
-        @botdir)
-
-    @ctx.translate(-.5,-.5)
-    g.border(@ctx, @Wi*g.cell_size, @Hi*g.cell_size)
-
-    @ctx.restore()
-
-    if @active_program?
-      @ctx.save()
-      @ctx.translate(program_start.x, program_start.y)
-
-
-      code = @active_program.code
-      cs = g.command_size
-      ics = g.inner_command_size
-
-      @ctx.save()
-      g.setStyle(@ctx, g.thick_lined_style)
-
-      @ctx.translate(cs/2, cs/2 - @pc * cs)
-
-      for idx in [0...code.length]
-        g.renderShape(@ctx, instruction_names[code[idx]], ics/2)
-
-        @ctx.translate(0, cs)
-
-      @ctx.restore()
-
-      @ctx.save()
-      g.setStyle(@ctx, g.lined_style)
-      @ctx.strokeRect(0, 0, cs, cs)
-      @ctx.restore()
-
-      @ctx.restore() # end rendering active program
-
-    if @active_mapping?
-        @ctx.save()
-        @ctx.translate(mapping_start.x, mapping_start.y)
-
-        @active_mapping.render(@ctx, @currentInstruction())
-
-        @ctx.restore()
-
-    if @mapping_menu?
-      len = @mapping_menu.entries.length
-      # overlay popup menu
-      @ctx.save()
-      @ctx.translate(menu_start.x, menu_start.y)
-      g.setStyle(@ctx, g.lined_style)
-      
-      height = (len+1) * g.menu_text_spacing + 32
-      @ctx.fillRect(0, 0, menu_width, height)
-      @ctx.strokeRect(0, 0, menu_width, height)
-
-      g.setStyle(@ctx, g.menu_text_style)
-
-      # heading
-      @ctx.translate(16,16+g.menu_text_spacing/2)
-      g.setStyle(@ctx, g.menu_text_style)
-      @ctx.fillText('Switch to:', 0, 0)
-      heading_measure = @ctx.measureText('Switch to:')
-      g.setStyle(@ctx, g.lined_style)
-      @ctx.beginPath()
-      @ctx.moveTo(0, g.menu_text_spacing/2-4)
-      @ctx.lineTo(heading_measure.width, g.menu_text_spacing/2-4)
-      @ctx.stroke()
-
-      # menu items
-      g.setStyle(@ctx, g.menu_text_style)
-      for msg, idx in @mapping_menu.entries
-        @ctx.translate(0, g.menu_text_spacing)
-        @ctx.fillText(msg.name, 0, 0)
-
-      # bot indicates selection
-
-      g.renderBot(@ctx, -16,
-        (@mapping_menu.selected-len+1) * g.menu_text_spacing,
-        RIGHT.theta)
-      g.renderBot(@ctx, menu_width-16,
-        (@mapping_menu.selected-len+1) * g.menu_text_spacing,
-        LEFT.theta)
-
-
-      @ctx.restore()
-
-      @setStatus(null, 'Input: up/down to move selection, &lt;enter&gt; to select')
-
-  keyboardCB: (key) =>
-    if @stop_running
-      return
-
-    if @mapping_menu
-      if key of keymap
-        dir = keymap[key]
-        if dir == UP
-          @mapping_menu.selected = Math.max(0, @mapping_menu.selected-1)
-        if dir == DOWN
-          @mapping_menu.selected = Math.min( @mapping_menu.entries.length-1,
-            @mapping_menu.selected+1)
-
-      if key == '<return>'
-        @requestMappingChange()
-
-      if key == '<backspace>'
-        @mapping_menu = null
-
-    else
-      if key of keymap
-        dir = keymap[key]
-        @requestBotMove(dir)
-
-      if key == 'm'
-        @showMappingChangeMenu()
-
-      if key == '<return>'
-        @doWhatMustBeDone()
-
-    @requestRender()
-
-    return
-
-  renderProgramCell: (x, y) ->
-    g.renderProgramCell(@ctx, x, y)
-  renderObstacleCell: (x, y) ->
-    g.renderObstacleCell(@ctx, x, y)
-  renderExitCell: (x, y) ->
-    g.renderExitCell(@ctx, x, y)
-
-  updateAllowedMove: () ->
-    if not @active_program?
-      @allowed_move = null
-      return
-
-    # set, but invalid, no move possible
-    @allowed_move = {x:-1,y:-1}
-
-    action = @translateInstruction(@currentInstruction())
-    if action.type == 'move'
-      @allowed_move = x: @botx + action.dir.dx, y: @boty + action.dir.dy
-    if action.type == 'blank'
-      @allowed_move = null
-
-    # otherwise movement is not possible
-    return
-
-  isMoveAllowed: (x, y) ->
-    # check borders
-    if x < 0 or y < 0 or x >= @Wi or y >= @Hi
-      return false
-
-    if @level[x][y].type == 'obstacle'
-      return false
-
-    if @allowed_move?
-      if @allowed_move.x != x or @allowed_move.y != y
-        return false
-
-    return true
+    @modes = level.mappings
+    for mode, idx in @modes
+      mode.idx = idx
+    @current_mode = @modes[0]
+    @current_program = []
 
   requestBotMove: (dir) ->
-    x = @botx + dir.dx
-    y = @boty + dir.dy
-
-    if @isMoveAllowed(x,y)
-      if @active_program?
-        if @isCurrentActionBlank()
-          @execute({type: 'move', dir: dir})
-      else
-        # free movement
-        @botx = x
-        @boty = y
-        @botdir = dir.theta
-
-        @updateProgram()
-    else if not @active_program?
-      # at least turn in the desired direction
-      @botdir = dir.theta
-
-    return
-
-  showMappingChangeMenu: () ->
-    if @isCurrentActionBlank() and @available_mappings.length > 0
-      @mapping_menu =
-        selected: 0
-        entries: []
-      
-      for map, idx in @mappings
-        if map != @active_mapping
-          @mapping_menu.entries.push({name: (idx+1)+'', id: idx})
-
-      for mapname, idx in @available_mappings
-        @mapping_menu.entries.push({name: 'new ' + mapname, 'new': true})
-      
-      # self-goto
-      #for map, idx in @mappings
-      #  if map == @active_mapping
-      #    @mapping_menu.entries.push({name: (idx+1)+'', id: idx})
-
-  requestMappingChange: () ->
-
-    entry = @mapping_menu.entries[@mapping_menu.selected]
-    @mapping_menu = null
-
-    if entry['new']
-      next_mapping_id = @mappings.length
-      # TODO: other types of mappings go here
-      next_mapping = new Mapping(@mappings.length)
-      @mappings[next_mapping_id] = next_mapping
-    else
-      next_mapping_id = entry.id
-      next_mapping = @mappings[next_mapping_id]
-
-    @execute({type: 'mapping', id: next_mapping_id})
-
-  doWhatMustBeDone: () ->
-    @execute(@translateInstruction(@currentInstruction()))
-
-  currentInstruction: () ->
-    return @active_program.code.charAt(@pc)
-
-  translateInstruction: (instruction) ->
-    return @active_mapping.mapCode(instruction)
-
-  isCurrentActionBlank: () ->
-    return (@active_program &&
-            @translateInstruction(@currentInstruction()).type == 'blank')
-
-  execute: (requested_action) ->
-    ra = requested_action
-    if not @active_program?
-      return false
-    if ra.type == 'blank'
+    dest = {x: @bot.x + dir.dx, y: @bot.y + dir.dy}
+    dest_block = @level[dest.x][dest.y]
+    if dest_block.type == 'obstacle'
       return false
 
-    action = @translateInstruction(@currentInstruction())
+    @bot.x = dest.x
+    @bot.y = dest.y
 
-    # check that requested action matches action to execute
-    if action.type != 'blank' and action.type != ra.type
-      return false
+    @loadProgram()
 
-    switch action.type
-      when 'move'
-        if @isMoveAllowed(ra.dir.dx + @botx, ra.dir.dy + @boty)
-          @botx = @allowed_move.x
-          @boty = @allowed_move.y
-          @botdir = ra.dir.theta
-        else
-          return false
-      when 'mapping'
-        if ra.id == action.id
-          @active_mapping = @mappings[action.id]
-        else
-          return false
-      when 'blank'
-        @installMapping(@active_mapping, requested_action,
-                        @currentInstruction())
-        @updateProgram()
-        return true
-
-    @pc += 1
-    if @pc == @active_program.code.length
-      # TODO: need to eject from program region if still in one
-      @active_program = null
-      @active_mapping = null # questionable
-
-    @updateProgram()
+    if dest_block.type == 'exit'
+      @halted = true
+      @won = true
 
     return true
 
-  updateProgram: () ->
-    cell = @level[@botx][@boty]
-    if cell.type == 'program'
-      if @active_program? and
-           @active_program.code == @programs[cell.id].code
-        true # no change
+  loadProgram: ->
+    block = @level[@bot.x][@bot.y]
+
+    if block.type == 'program'
+      if @current_program.length == 0
+        @current_program = @programs[block.id].code.split('')
+
+  mappingLookup: (mode, symbol) ->
+    if symbol of mode.lookup
+      return mode.lookup[symbol]
+    else
+      return null
+
+  mappingInsert: (mode, symbol, command) ->
+    mode.lookup[symbol] = command
+    if not (symbol in mode.symbols)
+      mode.symbols.push(symbol)
+    
+  doWhatMustBeDone: () ->
+    if @current_program.length == 0
+      return {success: false, move: null}
+    symbol = @current_program.shift()
+    command = @mappingLookup(@current_mode, symbol)
+    if command == null
+      @current_program.unshift(symbol)
+      return {success: false, move: null}
+    
+    if command.type == 'move'
+      success = @requestBotMove(command.dir)
+    else #command.type == 'mode'
+      success = true
+      @current_mode = @modes[command.idx]
+      @loadProgram() # last instruction of a program could be a mode change
+
+    if not success
+      @current_program.unshift(symbol)
+
+    return {success: success, move: command}
+
+  insertNeededMapping: (new_command) ->
+    if @current_program.length == 0
+      return false
+    symbol = @current_program[0]
+    command = @mappingLookup(@current_mode, symbol)
+
+    if command != null
+      return false
+
+    @mappingInsert(@current_mode, symbol, new_command)
+
+    return true
+
+################
+
+class Dwim
+  constructor: (@parent_div, @level, @level_id) ->
+    @state = new DwimState(@level)
+    gfx = @gfx = new window.DwimGraphics(@parent_div, @state)
+
+    @bot_sprite = @gfx.makeBotSprite()
+    @gfx.sprites.push(@bot_sprite)
+
+    @mode_sprites = @gfx.makeModeSprites()
+    @gfx.sprites = @gfx.sprites.concat(@mode_sprites)
+
+  startRender: ->
+    registerKeyFunction(@keyboardCB)
+    registerMouseFunction(@parent_div, @mouseCB)
+
+    requestAnimationFrame(@render)
+    rendering = true
+
+  render: (absolute_t) =>
+    if @state.halted
+      @gfx.showClue(null)
+
+      if @state.won
+        @linkNextLevel()
       else
-        # TODO: notify user
-        @active_program = @programs[cell.id]
-        @active_mapping = @mappings[0] # questionable
-        @pc = 0
-    if cell.type == 'exit'
-      @nextLevelLink()
-      @stop_running = true
+        @linkSameLevel()
+
+    @gfx.render(absolute_t)
+
+    @processProgram()
+
+    if @gfx.isAnimating()
+      requestAnimationFrame(@render)
+      @rendering = true
+    else
+      @rendering = false
+
+  keyboardCB: (key) =>
+    if @state.halted
       return
 
-    @updateAllowedMove()
-    @showExecutionStatus()
-    return
+    if key of keymap
+      move = keymap[key]
+      @processPlayerMove(move)
+    else if key of mode_keymap
+      mode = mode_keymap[key]
+      @processModeChange(mode)
 
-  showExecutionStatus: () ->
-    if @active_program?
-      instruction = @currentInstruction()
-      action = @translateInstruction(instruction)
-      switch action.type
-        when 'move'
-          if not @isMoveAllowed(action.dir.dx + @botx, action.dir.dy + @boty)
-            @setError('No valid move')
-          else
-            @setStatus('Running Program',
-              'Input: &lt;enter&gt; to move')
-        when 'mapping'
-          @setStatus('Running Program',
-            'Input: &lt;enter&gt; to switch mapping')
-        when 'blank'
-          @setStatus(
-            "<span class=\"att\">Need an action for #{instruction_names[instruction]}</span>",
-            "Input: any direction" +
-              (if @available_mappings.length > 0
-                 ', &quot;m&quot; to switch mapping'
-               else
-                 ''))
+    if not @rendering
+      requestAnimationFrame(@render)
+      @rendering = true
+
+  mouseCB: (what, where) =>
+    @gfx.showClue(where)
+
+    if not @rendering
+      requestAnimationFrame(@render)
+      @rendering = true
+
+  processPlayerMove: (move) ->
+    if @state.current_program.length > 0
+      if not @state.insertNeededMapping({type: 'move', dir: move})
+        return
+
+      @processProgram()
+
     else
-      @setStatus('Free Running', 'Input: any direction')
 
-  installMapping: (mapping, action, instruction) ->
-    new_action = null
+      old_pos = @bot_sprite.computePos()
+      if @state.requestBotMove(move)
+        @bot_sprite.animateMove(old_pos, move)
+        
+        @gfx.addRecordSprite({type: 'move', dir: move})
 
-    switch action.type
-      when 'move'
-        console.log('install move')
-        new_action = new MoveCommand(action.dir)
-      when 'mapping'
-        console.log('install mapping')
-        new_action = new MappingCommand(action.id)
-
-    mapping.setMapping(instruction, new_action)
-
-class Mapping
-  constructor: (@id) ->
-    @instructions = []
-    @commands = []
-
-  mapCode: (instruction) ->
-    idx = @instructions.indexOf(instruction)
-
-    if idx == -1
-      return {type: 'blank'}
-    else
-      return @commands[idx]
-
-  setMapping: (instruction, command) ->
-    idx = @instructions.indexOf(instruction)
-    if idx == -1
-      idx = @instructions.length
-      @instructions[idx] = instruction
-
-    @commands[idx] = command
-
-  render: (ctx, current_instruction) ->
-    ocs = g.outer_command_size
-    ics = g.inner_command_size
-
-    temp_inst = @instructions
-    if current_instruction? and not (current_instruction in @instructions)
-      temp_inst = @instructions.concat([current_instruction])
-
-    len = temp_inst.length
-
-    ctx.save()
-    g.setStyle(ctx, g.lined_style)
-
-    # container
-    ctx.beginPath()
-    ctx.moveTo(0,0)
-    ctx.lineTo(ocs * 2, 0)
-    ctx.lineTo(ocs * 2, ocs * len)
-    ctx.lineTo(0, ocs * len)
-    ctx.closePath()
-    ctx.stroke()
-
-    # vertical divider
-    ctx.beginPath()
-    ctx.moveTo(ocs, 0)
-    ctx.lineTo(ocs, ocs * len)
-    ctx.stroke()
-
-    # horizontal dividers
-    for idx in [1...len]
-      ctx.beginPath()
-      ctx.moveTo(0, ocs * idx)
-      ctx.lineTo(ocs * 2, ocs * idx)
-      ctx.stroke()
-    
-    # symbols
-    ctx.save()
-    ctx.translate(ocs/2, ocs/2)
-    for char in temp_inst
-      g.renderShape(ctx, instruction_names[char], ics/2)
-      ctx.translate(0, ocs)
-    ctx.restore()
-
-    # commands (if present)
-    ctx.translate(ocs*3/2, ocs/2)
-    for idx in [0...len]
-      if idx of @commands
-        @commands[idx].render(ctx)
+        if @state.current_program.length > 0
+          @gfx.onAnimComplete( => @gfx.addProgramSprites())
       else
-        ctx.save()
-        g.setStyle(ctx, g.att_lined_style)
-        g.renderShape(ctx, 'question', ics/2)
-        ctx.restore()
+        @bot_sprite.animateBump(old_pos, move)
 
-      ctx.translate(0, ocs)
+  processModeChange: (mode_idx) ->
+    if mode_idx == @state.current_mode.idx
+      return
 
-    ctx.restore()
+    if mode_idx >= @state.modes.length
+      return
 
-    if current_instruction?
-      idx = temp_inst.indexOf(current_instruction)
+    if @state.current_program.length > 0
+      if not @state.insertNeededMapping({type: 'mode', idx: mode_idx})
+        return
 
-      ctx.save()
-      g.setStyle(ctx, g.lined_style)
-      ctx.strokeRect((ocs-ics)/2, (ocs-ics)/2 + ocs*idx, ocs*2-(ocs-ics), ics)
-      ctx.restore()
+      @processProgram()
 
-    # id
-    ctx.save()
-    ctx.translate(-25,10)
-    g.setStyle(ctx, g.lined_style)
-    g.renderNumber(ctx, @id+1)
-    ctx.restore()
+    else
+      @state.current_mode = @state.modes[mode_idx]
+      @gfx.animatePopIn(@mode_sprites[mode_idx].animations, 1, 1)
+      @gfx.animatePopIn(@bot_sprite.animations, 1, 1)
 
+      @gfx.addRecordSprite({type: 'mode', idx: mode_idx})
 
-class MoveCommand
-  constructor: (@dir) ->
+  processProgram: ->
+    if not @gfx.isAnimating() and
+       @state.current_program.length > 0 and
+       not @state.halted
+      old_pos = @bot_sprite.computePos()
+      old_prog = @state.current_program
+      {success: success, move: move} = @state.doWhatMustBeDone()
+      if success
+        new_pos = @bot_sprite.computePos()
+        if old_pos.x != new_pos.x or old_pos.y != new_pos.y
+          @bot_sprite.animateMove(old_pos, move.dir)
+        else if move.type == 'mode'
+          @gfx.animatePopIn(@mode_sprites[move.idx].animations, 1, 1)
+          @gfx.animatePopIn(@bot_sprite.animations, 1, 1)
 
-  type: 'move'
+        @gfx.replaceNextRecordSprite(move)
 
-  render: (ctx) ->
-    ctx.save()
-    g.setStyle(ctx, g.lined_style)
-    g.renderArrow(ctx, @dir.theta, g.inner_command_size)
-    ctx.restore()
+        if @state.current_program != old_prog
+          @gfx.onAnimComplete( => @gfx.addProgramSprites())
+      else if move != null
+        @bot_sprite.animateBump(old_pos, move.dir)
+        @state.halted = true
 
-class MappingCommand
-  constructor: (@id) ->
+  linkNextLevel: ->
+    if @linked_next_level
+      return
+    @linked_next_level = true
 
-  type: 'mapping'
+    @parent_div.removeChild(@gfx.cnv)
+    link = document.createElement('a')
+    link.href = "?#{@level.next_level}"
+    link.appendChild(@gfx.cnv)
+    @parent_div.appendChild(link)
+  
+  linkSameLevel: ->
+    if @linked_same_level
+      return
+    @linked_same_level = true
 
-  render: (ctx) ->
-    ctx.save()
-    ctx.translate(-8,-8)
-    g.setStyle(ctx, g.lined_style)
-    g.renderNumber(ctx, @id+1)
-    ctx.restore()
-
-Dwim.UP     = UP
-Dwim.DOWN   = DOWN
-Dwim.LEFT   = LEFT
-Dwim.RIGHT  = RIGHT
+    @parent_div.removeChild(@gfx.cnv)
+    link = document.createElement('a')
+    link.href = "?#{@level_id}"
+    link.appendChild(@gfx.cnv)
+    @parent_div.appendChild(link)
  
 window.Dwim = Dwim
-
