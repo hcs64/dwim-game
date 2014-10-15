@@ -3,20 +3,25 @@ class DwimGraphics
     # constants of layout
     @block = 32
 
-    @mapping_dims =
+    @mode_dims =
       x: 10
-      y: 10
+      y: 72
       width: @block*3
       height: @block*10
+    @mode_appearance = [
+      {x: 0, y: 0, invert: false, circle: true},
+      {x: @block*2, y: 0, invert: true, circle: true},
+      {x: 0, y: @block*6, invert: false, circle: false},
+      {x: @block*2, y: @block*6, invert: true, circle: false}]
     @record_dims =
-      x: @mapping_dims.x + @mapping_dims.width + @block
+      x: @mode_dims.x + @mode_dims.width + @block
       y: 10
       width: @block*10
       height: @block*2
       Wi: 10
       Hi: 2
     @board_dims =
-      x: @mapping_dims.x+@mapping_dims.width+@block
+      x: @mode_dims.x+@mode_dims.width+@block
       y: @record_dims.y+@record_dims.height+@block
       width: @block*10
       height: @block*10
@@ -227,8 +232,13 @@ class DwimGraphics
     @ctx.restore()
 
   renderBot: (sprite) =>
-    @ctx.strokeStyle = 'white'
-    @ctx.fillStyle = 'black'
+    mode_appearance = @mode_appearance[@game_state.current_mode.idx]
+    if mode_appearance.invert
+      @ctx.strokeStyle = 'white'
+      @ctx.fillStyle = 'white'
+    else
+      @ctx.strokeStyle = 'white'
+      @ctx.fillStyle = 'black'
     stretch = 2*(1-Math.abs(sprite.t-.5))
     switch sprite.dir.name
       when 'up', 'down'
@@ -236,8 +246,10 @@ class DwimGraphics
       else
         @ctx.scale(stretch, 1/stretch)
     @ctx.lineWidth = 1.5
-    @renderShape('circle', @block*.4, true)
-    #@renderShape('star8', @block*.4, true)
+    if mode_appearance.circle
+      @renderShape('circle', @block*.4, true)
+    else
+      @renderShape('diamond', @block*.4, true)
 
   makeBotSprite: ->
     gfx = this
@@ -294,13 +306,30 @@ class DwimGraphics
 
     return bot
 
-  renderMode: (mode) =>
+  makeModeSprites: ->
+    mode_sprites = []
+    for mode,i in @game_state.modes
+      sprite =
+        x: @mode_dims.x+.5+@mode_appearance[i].x
+        y: @mode_dims.y+.5+@mode_appearance[i].y
+        mode: mode
+        invert: @mode_appearance[i].invert
+        circle: @mode_appearance[i].circle
+        render: @renderModeSprite
+        animations: []
+      mode_sprites.push(sprite)
+
+    return mode_sprites
+
+
+  renderModeSprite: (sprite) =>
+    mode = sprite.mode
     ocs = @block
     ics = @block*.75
 
     temp_sym = mode.symbols
     current_symbol = null
-    if mode == @game_state.current_mapping and
+    if mode == @game_state.current_mode and
        @game_state.current_program.length > 0
 
       current_symbol = @game_state.current_program[0]
@@ -313,7 +342,22 @@ class DwimGraphics
 
     # id
     @renderNumber(mode.id)
-    @ctx.translate(0,@block)
+
+    # bot version
+    @ctx.save()
+    @ctx.translate(@block+.5, @block*.25+.5)
+    @ctx.lineWidth = 1.5
+    if sprite.invert
+      @ctx.fillStyle = 'white'
+    else
+      @ctx.fillStyle = 'black'
+    if sprite.circle
+      @renderShape('circle', @block*.4, true)
+    else
+      @renderShape('diamond', @block*.4, true)
+    @ctx.restore()
+
+    @ctx.translate(@block*.125,@block)
 
     # commands (if present)
     @ctx.save()
@@ -609,8 +653,11 @@ class DwimGraphics
         @ctx.moveTo(0, .75*r)
         @ctx.lineTo(0, r)
       when 'octagon'
-        ics = radius*2
+        ics = radius*1.75
         cb = radius*.5  #bevel
+        ox = -ics/2
+        oy = -ics/2
+        @ctx.translate(ox,oy)
         @ctx.beginPath()
         @ctx.moveTo(0, cb)
         @ctx.lineTo(cb, 0)

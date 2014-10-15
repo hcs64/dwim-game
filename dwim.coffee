@@ -98,8 +98,10 @@ class DwimState
       throw 'overwriting border with exit'
     @level[level.exitpos.x][level.exitpos.y] = {type: 'exit'}
 
-    @mappings = level.mappings
-    @current_mapping = @mappings[0]
+    @modes = level.mappings
+    for mode, idx in @modes
+      mode.idx = idx
+    @current_mode = @modes[0]
     @current_program = []
 
   requestBotMove: (dir) ->
@@ -117,22 +119,22 @@ class DwimState
 
     return true
 
-  mappingLookup: (mapping, symbol) ->
-    if symbol of mapping.lookup
-      return mapping.lookup[symbol]
+  mappingLookup: (mode, symbol) ->
+    if symbol of mode.lookup
+      return mode.lookup[symbol]
     else
       return null
 
-  mappingInsert: (mapping, symbol, command) ->
-    mapping.lookup[symbol] = command
-    if not (symbol in mapping.symbols)
-      mapping.symbols.push(symbol)
+  mappingInsert: (mode, symbol, command) ->
+    mode.lookup[symbol] = command
+    if not (symbol in mode.symbols)
+      mode.symbols.push(symbol)
     
   doWhatMustBeDone: () ->
     if @current_program.length == 0
       return {success: false, move: null}
     symbol = @current_program[0]
-    command = @mappingLookup(@current_mapping, symbol)
+    command = @mappingLookup(@current_mode, symbol)
     if command == null
       return {success: false, move: null}
     
@@ -147,12 +149,12 @@ class DwimState
     if @current_program.length == 0
       return false
     symbol = @current_program[0]
-    command = @mappingLookup(@current_mapping, symbol)
+    command = @mappingLookup(@current_mode, symbol)
 
     if command != null
       return false
 
-    @mappingInsert(@current_mapping, symbol, new_command)
+    @mappingInsert(@current_mode, symbol, new_command)
 
     return true
 
@@ -166,16 +168,8 @@ class Dwim
     @bot_sprite = @gfx.makeBotSprite()
     @gfx.sprites.push(@bot_sprite)
 
-    @mode_sprites = []
-    @mode_sprites.push(
-      x: @gfx.mapping_dims.x+.5
-      y: @gfx.mapping_dims.y+.5
-      mode: @state.mappings[0]
-      render: (sprite) ->
-        gfx.renderMode(sprite.mode)
-      animations: [])
-
-    @gfx.sprites.push(@mode_sprites[0])
+    @mode_sprites = @gfx.makeModeSprites()
+    @gfx.sprites = @gfx.sprites.concat(@mode_sprites)
 
   startRender: ->
     requestAnimationFrame(@render)
