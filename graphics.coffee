@@ -207,7 +207,7 @@ class DwimGraphics
       if @game_state.won
         @renderMessage(@win_fill_style, 'Click to continue')
       else
-        @renderMessage(@fail_fill_style, 'Stuck, reload to retry')
+        @renderMessage(@fail_fill_style, 'Click to retry')
     else
 
     @ctx.restore()

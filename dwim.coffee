@@ -176,7 +176,7 @@ class DwimState
 ################
 
 class Dwim
-  constructor: (@parent_div, @level) ->
+  constructor: (@parent_div, @level, @level_id) ->
     @state = new DwimState(@level)
     gfx = @gfx = new window.DwimGraphics(@parent_div, @state)
 
@@ -197,6 +197,11 @@ class Dwim
     if @state.halted
       @gfx.showClue(null)
 
+      if @state.won
+        @linkNextLevel()
+      else
+        @linkSameLevel()
+
     @gfx.render(absolute_t)
 
     @processProgram()
@@ -208,7 +213,9 @@ class Dwim
       @rendering = false
 
   keyboardCB: (key) =>
-    t = Date.now()
+    if @state.halted
+      return
+
     if key of keymap
       move = keymap[key]
       @processPlayerMove(move)
@@ -290,5 +297,26 @@ class Dwim
         @bot_sprite.animateBump(old_pos, move.dir)
         @state.halted = true
 
+  linkNextLevel: ->
+    if @linked_next_level
+      return
+    @linked_next_level = true
 
+    @parent_div.removeChild(@gfx.cnv)
+    link = document.createElement('a')
+    link.href = "?#{@level.next_level}"
+    link.appendChild(@gfx.cnv)
+    @parent_div.appendChild(link)
+  
+  linkSameLevel: ->
+    if @linked_same_level
+      return
+    @linked_same_level = true
+
+    @parent_div.removeChild(@gfx.cnv)
+    link = document.createElement('a')
+    link.href = "?#{@level_id}"
+    link.appendChild(@gfx.cnv)
+    @parent_div.appendChild(link)
+ 
 window.Dwim = Dwim

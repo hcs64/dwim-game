@@ -37,6 +37,7 @@ Get to the star.<br>
 Arrow keys to move.<br>
 Number keys (1,2,3 ...) to switch modes.<br>
 Mouse over a <span style="background-color: #404040;">program region</span> to view its code.<br>
+You can reload this page to retry if you get stuck.
 </div>
 
 <div id="game1"></div>
@@ -199,7 +200,8 @@ if (level_id !== '0' && !level_id) {
 
 var game = new Dwim(
   document.getElementById('game1'),
-  levels[level_id]
+  levels[level_id],
+  level_id
 );
 
 game.startRender()
