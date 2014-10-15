@@ -338,7 +338,7 @@ class DwimGraphics
   renderModeSprite: (sprite) =>
     mode = sprite.mode
     ocs = @block
-    ics = @block*.75
+    ics = @block*.875
 
     temp_sym = mode.symbols
     current_symbol = null
@@ -380,9 +380,9 @@ class DwimGraphics
       @ctx.fillRect(-ocs/2-.5, -ocs/2-.5, ocs, ocs)
       @ctx.strokeRect(-ocs/2, -ocs/2, ocs, ocs)
       if sym of mode.lookup
-        @renderCommand(mode.lookup[sym].name, ics)
+        @renderCommand(mode.lookup[sym].name, ocs)
       else
-        @renderShape('question', ics/2)
+        @renderShape('question', ocs/2)
 
       @ctx.translate(0, ocs)
     @ctx.restore()
@@ -390,7 +390,8 @@ class DwimGraphics
     if current_symbol?
       idx = temp_sym.indexOf(current_symbol)
 
-      @ctx.strokeRect((ocs-ics)/2, (ocs-ics)/2 + ocs*idx, ics, ics)
+      @ctx.lineWidth = 3
+      @ctx.strokeRect(0, 0+idx*ocs, ocs, ocs)
 
   animatePopIn: (anims, low_scale, scale, pos) ->
     pop_0 =
