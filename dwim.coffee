@@ -179,6 +179,9 @@ class Dwim
     @gfx.sprites = @gfx.sprites.concat(@mode_sprites)
 
   startRender: ->
+    registerKeyFunction(@keyboardCB)
+    registerMouseFunction(@parent_div, @mouseCB)
+
     requestAnimationFrame(@render)
     rendering = true
 
@@ -202,7 +205,14 @@ class Dwim
       mode = mode_keymap[key]
       @processModeChange(mode)
 
-    if not @rendering and @gfx.isAnimating()
+    if not @rendering
+      requestAnimationFrame(@render)
+      @rendering = true
+
+  mouseCB: (what, where) =>
+    @gfx.showClue(where)
+
+    if not @rendering
       requestAnimationFrame(@render)
       @rendering = true
 

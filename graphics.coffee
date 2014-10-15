@@ -27,9 +27,11 @@ class DwimGraphics
       height: @block*10
     @clues_dims =
       x: 10
-      y: @board_dims.y+@board_dims.height+@block
+      y: @board_dims.y+@board_dims.height
       width: @block*14
-      height: @block*4
+      height: @block*2
+      Wi: 14
+      Hi: 2
 
     @program_fill_style = '#404040'
     @program_stroke_style = '#000000'
@@ -42,6 +44,8 @@ class DwimGraphics
     @record_sprites = []
     @record_sprite_clock = 0
     @addNextRecordSprite()
+
+    @clues = []
 
     # construct the canvas
     @cnv = document.createElement('canvas')
@@ -588,8 +592,42 @@ class DwimGraphics
 
     @advanceNextRecordSprite(0)
 
+  showClue: (where) ->
+    if where == null
+      @clues = []
+      return
+
+    xi = (where.x - @board_dims.x)//@block
+    yi = (where.y - @board_dims.y)//@block
+
+    if @game_state.level[xi]? and @game_state.level[xi][yi]? and
+       @game_state.level[xi][yi].type == 'program'
+      @clues = [ @game_state.programs[@game_state.level[xi][yi].id] ]
+    else
+      @clues = []
+
   renderClues: ->
+    if @clues.length == 0
+      return
+
     @ctx.save()
+
+    clue = @clues[0]
+
+    @ctx.translate(@clues_dims.x+@block*.5, @clues_dims.y+@block*.5)
+    bs = @block * .875
+    
+    xi = 0
+    for idx in [0...clue.code.length]
+      command = clue.code.charAt(idx)
+      @ctx.fillStyle = @instruction_colors[command]
+      @ctx.fillRect(0,0,bs,bs)
+      @ctx.translate(@block, 0)
+
+      xi += 1
+      if xi >= @clues_dims.Wi
+        @ctx.translate(-xi*@block, @block)
+        xi = 0
 
     @ctx.restore()
 
