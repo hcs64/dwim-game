@@ -275,7 +275,7 @@ class Dwim
       @gfx.addRecordSprite({type: 'mode', idx: mode_idx})
 
   processProgram: ->
-    if @bot_sprite.animations.length == 0 and
+    if not @gfx.isAnimating() and
        @state.current_program.length > 0 and
        not @state.halted
       old_pos = @bot_sprite.computePos()
