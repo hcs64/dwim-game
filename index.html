@@ -236,6 +236,7 @@ if (level_id === 'end') {
   var p = document.createElement('p');
   p.textContent = 'That\'s it, thank you for playing!';
   document.getElementById('game1').appendChild(p);
+  document.getElementById('instructions-link').style.display='none';
 } else {
   var game = new Dwim(
     document.getElementById('game1'),
