@@ -349,8 +349,8 @@ class DwimGraphics
 
     @ctx.strokeStyle = 'white'
 
-    # id
-    @renderNumber(mode.id)
+    # idx
+    @renderNumber(mode.idx+1)
 
     # bot version
     @ctx.save()

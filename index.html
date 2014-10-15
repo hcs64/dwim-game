@@ -70,7 +70,7 @@ b: {
     '0-9,3-6',
     '3-6,0-9'
   ],
-  mappings: [{id: 1, lookup: {}, symbols: []}],
+  mappings: [{lookup: {}, symbols: []}],
   next_level: '1',
 },
 // 00, test
@@ -89,10 +89,10 @@ b: {
     '3-6,0-9'
   ],
   //mappings: [{id: 1, lookup: {}, symbols: []}],
-  mappings: [{ id: 1, lookup: {c: RIGHT, d: RIGHT, h: RIGHT, s: RIGHT}, symbols: ['s','c','d','h'] },
-             { id: 2, lookup: {c: LEFT, d: LEFT, h: LEFT, s: LEFT}, symbols: ['s','c','d','h'] },
-             { id: 3, lookup: {c: UP, d: UP, h: UP, s: UP}, symbols: ['s','c','d','h'] },
-             { id: 4, lookup: {c: DOWN, d: DOWN, h: DOWN, s: DOWN}, symbols: ['s','c','d','h'] }],
+  mappings: [{lookup: {c: RIGHT, d: RIGHT, h: RIGHT, s: RIGHT}, symbols: ['s','c','d','h'] },
+             {lookup: {c: LEFT, d: LEFT, h: LEFT, s: LEFT}, symbols: ['s','c','d','h'] },
+             {lookup: {c: UP, d: UP, h: UP, s: UP}, symbols: ['s','c','d','h'] },
+             {lookup: {c: DOWN, d: DOWN, h: DOWN, s: DOWN}, symbols: ['s','c','d','h'] }],
   next_level: '1',
 },
 // 1, can change dir
@@ -104,7 +104,7 @@ b: {
   programs: [
     {loc: '2-6,3', code: 'dssss' },
   ],
-  available_mappings: [],
+  mappings: [{lookup: {}, symbols: []}],
   next_level: '2',
 },
 // 2, redundant dir change
@@ -123,7 +123,7 @@ b: {
     '0-2,3-4',
     '7-9,0-2'
   ],
-  available_mappings: [],
+  mappings: [{lookup: {}, symbols: []}],
   next_level: '3',
 },
 // 3, tricky dir change
@@ -142,7 +142,7 @@ b: {
   obstacles: [
     '4-5,4-7 4-7,4-5'
   ],
-  available_mappings: [],
+  mappings: [{lookup: {}, symbols: []}],
   next_level: '4',
 },
 // 4, one way out
@@ -159,7 +159,7 @@ b: {
     {code: 'csd', loc: '4,5-7'},
     {code: 'd', loc: '7,4'}
   ],
-  available_mappings: [],
+  mappings: [{lookup: {}, symbols: []}],
   next_level: '5',
 },
 // 5, mapping change
@@ -179,7 +179,8 @@ b: {
     {code: 's', loc: '7,4'},
     {code: 'ccssdccc', loc: '3-5,5 3-5,7 3,6'}
   ],
-  available_mappings: ['1-to-1'],
+  mappings: [{lookup: {}, symbols: []},
+             {lookup: {}, symbols: []}],
   next_level: 'end',
 },
 };
