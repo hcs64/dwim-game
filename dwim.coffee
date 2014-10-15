@@ -119,15 +119,20 @@ class DwimState
     @bot.x = dest.x
     @bot.y = dest.y
 
-    if dest_block.type == 'program'
-      if @current_program.length == 0
-        @current_program = @programs[dest_block.id].code.split('')
+    @loadProgram()
 
     if dest_block.type == 'exit'
       @halted = true
       @won = true
 
     return true
+
+  loadProgram: ->
+    block = @level[@bot.x][@bot.y]
+
+    if block.type == 'program'
+      if @current_program.length == 0
+        @current_program = @programs[block.id].code.split('')
 
   mappingLookup: (mode, symbol) ->
     if symbol of mode.lookup
@@ -154,6 +159,7 @@ class DwimState
     else #command.type == 'mode'
       success = true
       @current_mode = @modes[command.idx]
+      @loadProgram() # last instruction of a program could be a mode change
 
     if not success
       @current_program.unshift(symbol)
