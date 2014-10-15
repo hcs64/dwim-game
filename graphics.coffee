@@ -33,9 +33,17 @@ class DwimGraphics
       Wi: 14
       Hi: 2
 
+    @message_pos =
+      x: @board_dims.x + @board_dims.width/2
+      y: @board_dims.y + @board_dims.height/2
+
     @program_fill_style = '#404040'
     @program_stroke_style = '#000000'
     @grid_stroke_style = '#404040'
+
+    @fail_fill_style = '#c00000'
+    @win_fill_style = '#00c000'
+    @message_bg_fill_style = '#000000'
 
     @computeOutlines()
 
@@ -192,7 +200,15 @@ class DwimGraphics
     @ctx.save()
 
     @renderWalls()
+
     @renderClues()
+
+    if @game_state.halted
+      if @game_state.won
+        @renderMessage(@win_fill_style, 'Click to continue')
+      else
+        @renderMessage(@fail_fill_style, 'Stuck, reload to retry')
+    else
 
     @ctx.restore()
 
@@ -637,6 +653,20 @@ class DwimGraphics
         @ctx.translate(-xi*@block, @block)
         xi = 0
 
+    @ctx.restore()
+
+  renderMessage: (fill_style, message) ->
+    @ctx.save()
+    @ctx.font = 'bold 16px monospace'
+    @ctx.textAlign = 'center'
+    @ctx.textBaseline = 'middle'
+
+    @ctx.fillStyle = @message_bg_fill_style
+    width = @ctx.measureText(message).width
+    @ctx.fillRect(@message_pos.x-width/2-16, @message_pos.y-16, width+32, 32)
+
+    @ctx.fillStyle = fill_style
+    @ctx.fillText(message, @message_pos.x, @message_pos.y)
     @ctx.restore()
 
   onAnimComplete: (fcn) ->

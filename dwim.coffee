@@ -123,6 +123,10 @@ class DwimState
       if @current_program.length == 0
         @current_program = @programs[dest_block.id].code.split('')
 
+    if dest_block.type == 'exit'
+      @halted = true
+      @won = true
+
     return true
 
   mappingLookup: (mode, symbol) ->
@@ -190,6 +194,9 @@ class Dwim
     rendering = true
 
   render: (absolute_t) =>
+    if @state.halted
+      @gfx.showClue(null)
+
     @gfx.render(absolute_t)
 
     @processProgram()
