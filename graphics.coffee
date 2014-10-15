@@ -25,6 +25,11 @@ class DwimGraphics
       y: @record_dims.y+@record_dims.height+@block
       width: @block*10
       height: @block*10
+    @clues_dims =
+      x: 10
+      y: @board_dims.y+@board_dims.height+@block
+      width: @block*14
+      height: @block*4
 
     @program_fill_style = '#404040'
     @program_stroke_style = '#000000'
@@ -41,7 +46,7 @@ class DwimGraphics
     # construct the canvas
     @cnv = document.createElement('canvas')
     @cnv.width = @board_dims.x + @board_dims.width + @block
-    @cnv.height = @board_dims.y + @board_dims.height + @block
+    @cnv.height = @clues_dims.y + @clues_dims.height + @block
     @parent_div.appendChild(@cnv)
     @ctx = @cnv.getContext('2d')
 
@@ -183,6 +188,7 @@ class DwimGraphics
     @ctx.save()
 
     @renderWalls()
+    @renderClues()
 
     @ctx.restore()
 
@@ -581,6 +587,11 @@ class DwimGraphics
         ]
 
     @advanceNextRecordSprite(0)
+
+  renderClues: ->
+    @ctx.save()
+
+    @ctx.restore()
 
   onAnimComplete: (fcn) ->
     @anim_complete_callbacks.push(fcn)
