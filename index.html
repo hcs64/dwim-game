@@ -232,13 +232,19 @@ if (level_id !== '0' && !level_id) {
   level_id = level_id.substr(1);
 }
 
-var game = new Dwim(
-  document.getElementById('game1'),
-  levels[level_id],
-  level_id
-);
+if (level_id === 'end') {
+  var p = document.createElement('p');
+  p.textContent = 'That\'s it, thank you for playing!';
+  document.getElementById('game1').appendChild(p);
+} else {
+  var game = new Dwim(
+    document.getElementById('game1'),
+    levels[level_id],
+    level_id
+  );
 
-game.startRender()
+  game.startRender()
+}
 
 })();
 </script>
