@@ -139,15 +139,16 @@ class DwimState
   doWhatMustBeDone: () ->
     if @current_program.length == 0
       return {success: false, move: null}
-    symbol = @current_program[0]
+    symbol = @current_program.shift()
     command = @mappingLookup(@current_mode, symbol)
     if command == null
+      @current_program.unshift(symbol)
       return {success: false, move: null}
     
     # TODO: not if mode switch
     success = @requestBotMove(command)
-    if success
-      @current_program.shift()
+    if not success
+      @current_program.unshift(symbol)
 
     return {success: success, move: command}
 
