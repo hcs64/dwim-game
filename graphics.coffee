@@ -21,7 +21,8 @@ class DwimGraphics
       width: @block*10
       height: @block*10
 
-    @program_stroke_style = '#8000c0'
+    @program_fill_style = '#404040'
+    @program_stroke_style = '#000000'
     @grid_stroke_style = '#404040'
 
     @computeOutlines()
@@ -49,7 +50,7 @@ class DwimGraphics
     s: '#c00000'  # red
     c: '#00c000'  # green
     d: '#0000c0'  # blue
-    h: '#00c0c0'  # light blue
+    h: '#c000c0'  # purple
 
   computeOutlines: () ->
     @outline_links = []
@@ -206,17 +207,13 @@ class DwimGraphics
           when 'empty'
             @ctx.strokeRect(x*@block-.5, y*@block-.5, @block, @block)
     @ctx.strokeStyle = @program_stroke_style
-    @ctx.lineWidth = 2
+    @ctx.fillStyle = @program_fill_style
     for x in [0...@game_state.Wi]
       for y in [0...@game_state.Hi]
         switch @game_state.level[x][y].type
           when 'program'
-            #@ctx.fillRect(x*@block-.5, y*@block-.5, @block, @block)
-            #@ctx.strokeRect(x*@block-.5, y*@block-.5, @block, @block)
-            @ctx.save()
-            @ctx.translate(x*@block-.5, y*@block-.5)
-            @renderShape('octagon', @block*.5)
-            @ctx.restore()
+            @ctx.fillRect(x*@block-.5, y*@block-.5, @block, @block)
+            @ctx.strokeRect(x*@block-.5, y*@block-.5, @block, @block)
     @ctx.restore()
 
   renderBot: (sprite) =>
