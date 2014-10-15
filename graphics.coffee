@@ -69,10 +69,10 @@ class DwimGraphics
     h: 'hex'
 
   instruction_colors:
-    s: '#c00000'  # red
-    c: '#00c000'  # green
-    d: '#0000c0'  # blue
-    h: '#c000c0'  # purple
+    r: '#c00000'  # red
+    g: '#00c000'  # green
+    b: '#0000c0'  # blue
+    p: '#c000c0'  # pink/purple/magenta
 
   computeOutlines: () ->
     @outline_links = []

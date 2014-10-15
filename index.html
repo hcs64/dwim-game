@@ -45,24 +45,37 @@ You can reload this page to retry if you get stuck.
 (function(){
 
 levels = {
-b: {
-  startpos: {x: 0, y: 5},
-  exitpos: {x: 9, y: 9},
+// 0
+'0': {
   dims: {w: 10, h: 10},
+  startpos: {x: 0, y: 8},
+  exitpos: {x: 7, y: 9},
+  obstacles: ['0,0-3 0-1,7 1,8 1-2,5 3-6,5-9 6,0-1 6,3-4 8,1 8-9,3-9'],
   programs: [
-    {code: 'ccdcc',
-     loc: '3-5,5 5-6,4'}
-  ],
-  obstacles: [
-    '2-7,0-3 3-6,4-6 2-7,7-9'
+    {code: 'ggb', loc: '0,4-6'},
+    {code: 'rrrggbbppp', loc: '6-9,2 7-9,0 7,1 9,1'},
+    {code: 'rgbp', loc: '7,5-8'}
   ],
   mappings: [
-    /*{c: RIGHT, d: UP}*/
-    { id: 1, lookup: {c: RIGHT}, symbols: ['c'] }
-  ],
+    {lookup: {r: {type: 'move', dir: LEFT},
+              g: {type: 'move', dir: UP},
+              b: {type: 'move', dir: RIGHT},
+              p: {type: 'move', dir: DOWN}},
+              symbols: ['r','g','b','p']},
+    {lookup: {r: {type: 'move', dir: RIGHT},
+              g: {type: 'move', dir: UP},
+              b: {type: 'move', dir: LEFT},
+              p: {type: 'move', dir: DOWN}},
+              symbols: ['r','g','b','p']},
+    {lookup: {r: {type: 'move', dir: DOWN},
+              g: {type: 'move', dir: DOWN},
+              b: {type: 'move', dir: DOWN},
+              p: {type: 'move', dir: DOWN}},
+              symbols: ['r','g','b','p']}],
+  next_level: '1'
 },
-// 0, intro?
-'0': {
+// old 0
+'0old': {
   dims: {w: 10, h: 10},
   startpos: {x: 0, y:0},
   exitpos: {x:5, y:5},
