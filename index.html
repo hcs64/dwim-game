@@ -11,29 +11,34 @@
 <style>
 body {
   background-color: black;
-}
-
-div.status {
-  font-family: monospace;
   color: white;
-}
-
-span.error {
-  color: red;
-}
-
-span.att {
-  color: yellow;
 }
 
 a {
   color: blue;
+}
+a.fake-link {
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+div#instructions {
+  display: none;
 }
 
 </style>
 </head>
 
 <body>
+<a id="instructions-link" class="fake-link"
+   onclick="getElementById('instructions-link').style.display='none'; getElementById('instructions').style.display='block';">Instructions</a>
+<div id="instructions">
+Get to the star in each level.<br>
+Arrow keys to move.<br>
+Number keys (1,2,3 ...) to switch modes.<br>
+Mouse over a <span style="background-color: #404040;">program region</span> to view its code.<br>
+</div>
+
 <div id="game1"></div>
 <script>
 (function(){
