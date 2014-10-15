@@ -145,8 +145,12 @@ class DwimState
       @current_program.unshift(symbol)
       return {success: false, move: null}
     
-    # TODO: not if mode switch
-    success = @requestBotMove(command)
+    if command.type == 'move'
+      success = @requestBotMove(command.dir)
+    else #command.type == 'mode'
+      success = true
+      @current_mode = @modes[command.idx]
+
     if not success
       @current_program.unshift(symbol)
 
@@ -218,7 +222,7 @@ class Dwim
 
   processPlayerMove: (move) ->
     if @state.current_program.length > 0
-      if not @state.insertNeededMapping(move)
+      if not @state.insertNeededMapping({type: 'move', dir: move})
         return
 
       @processProgram()
@@ -229,7 +233,7 @@ class Dwim
       if @state.requestBotMove(move)
         @bot_sprite.animateMove(old_pos, move)
         
-        @gfx.addRecordSprite(move)
+        @gfx.addRecordSprite({type: 'move', dir: move})
 
         if @state.current_program.length > 0
           @gfx.onAnimComplete( => @gfx.addProgramSprites())
@@ -243,9 +247,18 @@ class Dwim
     if mode_idx >= @state.modes.length
       return
 
-    @state.current_mode = @state.modes[mode_idx]
-    @gfx.animatePopIn(@mode_sprites[mode_idx].animations, 1, 1)
-    @gfx.animatePopIn(@bot_sprite.animations, 1, 1)
+    if @state.current_program.length > 0
+      if not @state.insertNeededMapping({type: 'mode', idx: mode_idx})
+        return
+
+      @processProgram()
+
+    else
+      @state.current_mode = @state.modes[mode_idx]
+      @gfx.animatePopIn(@mode_sprites[mode_idx].animations, 1, 1)
+      @gfx.animatePopIn(@bot_sprite.animations, 1, 1)
+
+      @gfx.addRecordSprite({type: 'mode', idx: mode_idx})
 
   processProgram: ->
     if @bot_sprite.animations.length == 0 and
@@ -257,13 +270,17 @@ class Dwim
       if success
         new_pos = @bot_sprite.computePos()
         if old_pos.x != new_pos.x or old_pos.y != new_pos.y
-          @bot_sprite.animateMove(old_pos, move)
+          @bot_sprite.animateMove(old_pos, move.dir)
+        else if move.type == 'mode'
+          @gfx.animatePopIn(@mode_sprites[move.idx].animations, 1, 1)
+          @gfx.animatePopIn(@bot_sprite.animations, 1, 1)
+
         @gfx.replaceNextRecordSprite(move)
 
         if @state.current_program != old_prog
           @gfx.onAnimComplete( => @gfx.addProgramSprites())
       else if move != null
-        @bot_sprite.animateBump(old_pos, move)
+        @bot_sprite.animateBump(old_pos, move.dir)
         @state.halted = true
 
 

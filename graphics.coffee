@@ -242,25 +242,13 @@ class DwimGraphics
     @ctx.restore()
 
   renderBot: (sprite) =>
-    mode_appearance = @mode_appearance[@game_state.current_mode.idx]
-    if mode_appearance.invert
-      @ctx.strokeStyle = 'white'
-      @ctx.fillStyle = 'white'
-    else
-      @ctx.strokeStyle = 'white'
-      @ctx.fillStyle = 'black'
     stretch = 2*(1-Math.abs(sprite.t-.5))
     switch sprite.dir.name
       when 'up', 'down'
         @ctx.scale(1/stretch, stretch)
       else
         @ctx.scale(stretch, 1/stretch)
-    @ctx.scale(sprite.scale, sprite.scale)
-    @ctx.lineWidth = 1.5
-    if mode_appearance.circle
-      @renderShape('circle', @block*.4, true)
-    else
-      @renderShape('diamond', @block*.4, true)
+    @renderBotMode(@game_state.current_mode.idx, sprite.scale*@block)
 
   makeBotSprite: ->
     gfx = this
@@ -325,8 +313,6 @@ class DwimGraphics
         x: @mode_dims.x+.5+@mode_appearance[i].x
         y: @mode_dims.y+.5+@mode_appearance[i].y
         mode: mode
-        invert: @mode_appearance[i].invert
-        circle: @mode_appearance[i].circle
         render: @renderModeSprite
         scale: 1
         animations: []
@@ -359,15 +345,8 @@ class DwimGraphics
     # bot version
     @ctx.save()
     @ctx.translate(@block+.5, @block*.25+.5)
-    @ctx.lineWidth = 1.5
-    if sprite.invert
-      @ctx.fillStyle = 'white'
-    else
-      @ctx.fillStyle = 'black'
-    if sprite.circle
-      @renderShape('circle', @block*.4*sprite.scale, true)
-    else
-      @renderShape('diamond', @block*.4*sprite.scale, true)
+
+    @renderBotMode(mode.idx, @block*sprite.scale)
     @ctx.restore()
 
     @ctx.translate(@block*.125,@block)
@@ -380,7 +359,7 @@ class DwimGraphics
       @ctx.fillRect(-ocs/2-.5, -ocs/2-.5, ocs, ocs)
       @ctx.strokeRect(-ocs/2, -ocs/2, ocs, ocs)
       if sym of mode.lookup
-        @renderCommand(mode.lookup[sym].name, ocs)
+        @renderCommand(mode.lookup[sym], ocs)
       else
         @renderShape('question', ocs/2)
 
@@ -474,13 +453,34 @@ class DwimGraphics
         @ctx.fillStyle = @instruction_colors[sprite.command]
         @ctx.fillRect(-bs-.5, -bs-.5, bs*2, bs*2)
       @ctx.strokeStyle = 'white'
-      @renderArrow(sprite.dir.theta, @block)
 
+      if sprite.dir?
+        @renderArrow(sprite.dir.theta, @block)
+      else
+        @renderBotMode(sprite.mode_idx, @block)
+
+  renderBotMode: (mode, radius) ->
+    if radius == 0
+      return
+    mode_appearance = @mode_appearance[mode]
+    if mode_appearance.invert
+      @ctx.strokeStyle = 'white'
+      @ctx.fillStyle = 'white'
+    else
+      @ctx.strokeStyle = 'white'
+      @ctx.fillStyle = 'black'
+
+    @ctx.lineWidth = 1.5
+    if mode_appearance.circle
+      @renderShape('circle', radius*.4, true)
+    else
+      @renderShape('diamond', radius*.4, true)
+ 
   # record sprite insertion behaviors
   # normal: pop in
   # last column in all-but-last row: pop
   # last column in last row: pop and scroll
-  addRecordSprite: (dir) ->
+  addRecordSprite: (move) ->
     height = @record_dims.Hi
     width = @record_dims.Wi
 
@@ -488,11 +488,15 @@ class DwimGraphics
       x: @record_dims.x + (.5 + @record_sprites.length) * @block + .5
       y: @record_dims.y + .5 * @block + .5
       scale: 0
-      dir: dir
       render: @renderRecordSpriteArrow
       programmed: false
       clock: @record_sprite_clock
       animations: []
+
+    if move.type == 'move'
+      sprite.dir = move.dir
+    else
+      sprite.mode_idx = move.idx
 
     while sprite.x > @record_dims.x + @record_dims.width
       sprite.x -= @record_dims.width
@@ -547,11 +551,14 @@ class DwimGraphics
 
     @sprites = @sprites.concat(new_sprites)
         
-  replaceNextRecordSprite: (dir) ->
+  replaceNextRecordSprite: (move) ->
     for sprite in @record_sprites
       if sprite.clock == @next_record_sprite.clock
         sprite.render = @renderRecordSpriteArrow
-        sprite.dir = dir
+        if move.type == 'move'
+          sprite.dir = move.dir
+        else
+          sprite.mode_idx = move.idx
         sprite.programmed = true
         @animatePopIn(sprite.animations, 1, 1)
     @advanceNextRecordSprite(1)
@@ -728,16 +735,11 @@ class DwimGraphics
     return
 
   renderCommand: (command, size) ->
-    switch (command)
-      when 'up'
-        @renderArrow(UP.theta, size)
-      when 'down'
-        @renderArrow(DOWN.theta, size)
-      when 'left'
-        @renderArrow(LEFT.theta, size)
-      when 'right'
-        @renderArrow(RIGHT.theta, size)
-    return
+    switch command.type
+      when 'move'
+        @renderArrow(command.dir.theta, size)
+      when 'mode'
+        @renderBotMode(command.idx, size)
 
   digit_graphics: [
     # 0
