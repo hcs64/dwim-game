@@ -469,9 +469,9 @@ class DwimGraphics
     if sprite.scale > 0
       @ctx.scale(sprite.scale, sprite.scale)
       if sprite.programmed
-        bs = @block * .45
+        bs = @block * 7/16
         @ctx.fillStyle = @instruction_colors[sprite.command]
-        @ctx.fillRect(-bs, -bs, bs*2, bs*2)
+        @ctx.fillRect(-bs-.5, -bs-.5, bs*2, bs*2)
       @ctx.strokeStyle = 'white'
       @renderArrow(sprite.dir.theta, @block)
 
@@ -524,9 +524,9 @@ class DwimGraphics
         render: (sprite) =>
           if sprite.scale > 0
             @ctx.scale(sprite.scale, sprite.scale)
-            bs = @block * .45
+            bs = @block * 7/16
             @ctx.fillStyle = @instruction_colors[sprite.command]
-            @ctx.fillRect(-bs, -bs, bs*2, bs*2)
+            @ctx.fillRect(-bs-.5, -bs-.5, bs*2, bs*2)
         clock: @record_sprite_clock
         animations: []
 
