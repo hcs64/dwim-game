@@ -214,6 +214,16 @@ class DwimGraphics
           when 'program'
             @ctx.fillRect(x*@block-.5, y*@block-.5, @block, @block)
             @ctx.strokeRect(x*@block-.5, y*@block-.5, @block, @block)
+    @ctx.strokeStyle = 'white'
+    @ctx.lineWidth = 1.5
+    for x in [0...@game_state.Wi]
+      for y in [0...@game_state.Hi]
+        switch @game_state.level[x][y].type
+          when 'exit'
+            @ctx.save()
+            @ctx.translate((x+.5)*@block-.5, (y+.5)*@block-.5)
+            @renderShape('star5', @block*.375)
+            @ctx.restore()
     @ctx.restore()
 
   renderBot: (sprite) =>
@@ -227,6 +237,7 @@ class DwimGraphics
         @ctx.scale(stretch, 1/stretch)
     @ctx.lineWidth = 1.5
     @renderShape('circle', @block*.4, true)
+    #@renderShape('star8', @block*.4, true)
 
   makeBotSprite: ->
     gfx = this
@@ -552,8 +563,17 @@ class DwimGraphics
     switch shape
       when 'circle'
         @ctx.arc(0,0,radius*.8,0,Math.PI*2)
-      when 'star'
-        @ctx.arc(0,0,radius*.8,0,Math.PI)
+      when 'star8', 'star5'
+        sides = if shape == 'star8' then 8 else 5
+        inner = radius*.5
+        @ctx.moveTo(0, -radius)
+        @ctx.save()
+        for i in [0...sides]
+          @ctx.rotate(Math.PI/sides)
+          @ctx.lineTo(0, -inner)
+          @ctx.rotate(Math.PI/sides)
+          @ctx.lineTo(0, -radius)
+        @ctx.restore()
       when 'square'
         r = radius*.75
         @ctx.moveTo(-r,-r)
