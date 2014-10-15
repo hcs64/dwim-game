@@ -480,7 +480,7 @@ class DwimGraphics
       return
     mode_appearance = @mode_appearance[mode]
     if mode_appearance.invert
-      @ctx.strokeStyle = 'white'
+      @ctx.strokeStyle = 'black'
       @ctx.fillStyle = 'white'
     else
       @ctx.strokeStyle = 'white'
@@ -765,11 +765,13 @@ class DwimGraphics
     return
 
   renderCommand: (command, size) ->
+    @ctx.save()
     switch command.type
       when 'move'
         @renderArrow(command.dir.theta, size)
       when 'mode'
         @renderBotMode(command.idx, size)
+    @ctx.restore()
 
   digit_graphics: [
     # 0
