@@ -27,6 +27,10 @@ div#instructions {
   display: none;
 }
 
+div.inblock {
+  display: inline-block;
+}
+
 </style>
 </head>
 
@@ -43,9 +47,30 @@ Mouse over a <span style="background-color: #404040;">program region</span> to v
 You can reload this page to retry if you get stuck.
 </div>
 
-<div id="game1"></div>
+<div class="inblock" id="game1"></div>
+
+<div class="inblock">spacer</div>
+
+<div class="inblock" id="menu1">
+<a class="fake-link" onclick="menu[1]()">1 1 1 1<br>1 1 1 1<br>1 1 1 1<br>1 1 1 1</a><br><br>
+<a class="fake-link" onclick="menu[2]()">2 2 2 2<br>2 2 2 2<br>2 2 2 2<br>2 2 2 2</a><br><br>
+<a class="fake-link" onclick="menu[3]()">3 3 3 3<br>3 3 3 3<br>3 3 3 3<br>3 3 3 3</a><br><br>
+<a class="fake-link" onclick="menu[4]()">4 4 4 4<br>4 4 4 4<br>4 4 4 4<br>4 4 4 4</a><br><br>
+</div>
+
+<div class="inblock">spacer</div>
+
+<div class="inblock" id="menu2">
+<a class="fake-link" onclick="menu.up()">UP UP<br>UP UP<br>UP UP<br>UP UP</a><br><br>
+<a class="fake-link" onclick="menu.down()">DOWN<br>DOWN<br>DOWN<br>DOWN</a><br><br>
+<a class="fake-link" onclick="menu.left()">LEFT<br>LEFT<br>LEFT<br>LEFT</a><br><br>
+<a class="fake-link" onclick="menu.right()">RIGHT<br>RIGHT<br>RIGHT<br>RIGHT</a><br><br>
+</div>
 
 <script>
+
+menu = {
+};
 
 (function(){
 
@@ -69,6 +94,31 @@ if (level_id === 'end') {
     levels[level_id],
     level_id
   );
+
+  menu[1] = function(){
+    game.keyboardCB('1');
+  };
+  menu[2] = function(){
+    game.keyboardCB('2');
+  };
+  menu[3] = function(){
+    game.keyboardCB('3');
+  };
+  menu[4] = function(){
+    game.keyboardCB('4');
+  };
+  menu.up = function(){
+    game.keyboardCB('<up>');
+  };
+  menu.down = function(){
+    game.keyboardCB('<down>');
+  };
+  menu.left = function(){
+    game.keyboardCB('<left>');
+  };
+  menu.right = function(){
+    game.keyboardCB('<right>');
+  };
 
   game.startRender()
 }
