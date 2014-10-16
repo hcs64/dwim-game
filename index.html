@@ -78,6 +78,25 @@ levels = {
 // 2
 '2': {
   dims: {w: 10, h: 10},
+  startpos: {x: 0, y: 9},
+  exitpos: {x: 7, y: 2},
+  obstacles: ['0-2,0-8 3-6,0-4 4-6,6-8 7,0-1 8-9,0-9'],
+  programs: [
+    {code: 'r', loc: '3,9'},
+    {code: 'rrrbr', loc: '4-7,5 7,5-8'}],
+  mappings: [
+    {lookup: {r: {type: 'move', dir: UP},
+              b: {type: 'mode', idx: 1}},
+             symbols: ['r','b']},
+    {lookup: {r: {type: 'move', dir: RIGHT},
+              b: {type: 'mode', idx: 0}},
+             symbols: ['r','b']}],
+  next_level: '2a'
+},
+
+// 2a
+'2a': {
+  dims: {w: 10, h: 10},
   startpos: {x: 0, y: 4},
   exitpos: {x: 5, y: 4},
   obstacles: ['0-2,0-1 3,0 0,2-3 1,2 0,5-6 1,6 0-2,7-9 3,8-9 4-9,9 7,0-1 7,7-8 8,0-2 8,6-8 9,0-8',
