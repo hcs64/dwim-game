@@ -209,8 +209,6 @@ class DwimGraphics
 
     @renderWalls()
 
-    @renderClues()
-
     if @game_state.halted
       if @game_state.won
         @renderMessage(@win_fill_style, 'Click to continue')
@@ -445,10 +443,15 @@ class DwimGraphics
       @renderLetter(label.letter)
       @ctx.restore()
 
-  renderClues: ->
-    @ctx.save()
+  makeCluesSprite: ->
+    x: @clues_dims.x+@block*.5
+    y: @clues_dims.y+@block*.5
+    program_id: -1
+    program_idx: 0
+    render: @renderClues
+    animations: []
 
-    @ctx.translate(@clues_dims.x+@block*.5, @clues_dims.y+@block*.5)
+  renderClues: (sprite) =>
     bs = @block * .875
     
     xi = 0
@@ -471,48 +474,37 @@ class DwimGraphics
       @ctx.translate(@block, 0)
       xi += 1
 
-      pid = @game_state.current_program_id
-      phl = @game_state.current_program_history.length
+      pid = sprite.program_id
+      highlight = xi + sprite.program_idx
 
-      if pid != label.id or phl == 0
-        mode = @game_state.current_mode
+      if pid == label.id
+        mode = 'unknown'
       else
-        mode = @game_state.current_program_history[phl-1].mode
-
-      highlight = -1
+        mode = @game_state.current_mode
 
       for idx in [0...program.code.length]
         command = program.code.charAt(idx)
         @ctx.fillStyle = @instruction_colors[command]
         @ctx.fillRect(0,0,bs,bs)
         
-        was_unknown = (mode == 'unknown')
-
-        if not was_unknown
+        if mode != 'unknown'
           action = mode.lookup[command]
 
           @ctx.translate(bs/2+.5, bs/2+.5)
           if action?
-            if pid != label.id
-              @renderCommand(mode.lookup[command], @block)
+            @renderCommand(mode.lookup[command], @block)
 
             if action.type == 'mode'
               mode = @game_state.modes[action.idx]
           else
-            if pid != label.id
-              @renderShape('question', @block/2)
+            @renderShape('question', @block/2)
             mode = 'unknown'
           @ctx.translate(-bs/2-.5, -bs/2-.5)
-
-        if pid == label.id and
-           (idx == phl-1 or (!was_unknown and mode == 'unknown' and idx == phl))
-           
-          highlight = xi
 
         @ctx.translate(@block, 0)
         xi += 1
 
-      if highlight != -1
+      if pid == label.id
         @ctx.save()
         @ctx.translate(-(xi-highlight)*@block, 0)
         @ctx.strokeStyle = 'yellow'
@@ -522,8 +514,6 @@ class DwimGraphics
 
       @ctx.translate(@block, 0)
       xi += 1
-
-    @ctx.restore()
 
   renderMessage: (fill_style, message) ->
     @ctx.save()

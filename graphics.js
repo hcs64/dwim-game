@@ -8,6 +8,7 @@
     function DwimGraphics(parent_div, game_state) {
       this.parent_div = parent_div;
       this.game_state = game_state;
+      this.renderClues = __bind(this.renderClues, this);
       this.renderModeSprite = __bind(this.renderModeSprite, this);
       this.renderBot = __bind(this.renderBot, this);
       this.block = 32;
@@ -286,7 +287,6 @@
     DwimGraphics.prototype.renderFG = function() {
       this.ctx.save();
       this.renderWalls();
-      this.renderClues();
       if (this.game_state.halted) {
         if (this.game_state.won) {
           this.renderMessage(this.win_fill_style, 'Click to continue');
@@ -641,14 +641,24 @@
       return _results;
     };
 
-    DwimGraphics.prototype.renderClues = function() {
-      var action, bs, command, highlight, idx, label, mode, phl, pid, program, was_unknown, xi, yi, _i, _j, _len, _ref, _ref1;
-      this.ctx.save();
-      this.ctx.translate(this.clues_dims.x + this.block * .5, this.clues_dims.y + this.block * .5);
+    DwimGraphics.prototype.makeCluesSprite = function() {
+      return {
+        x: this.clues_dims.x + this.block * .5,
+        y: this.clues_dims.y + this.block * .5,
+        program_id: -1,
+        program_idx: 0,
+        render: this.renderClues,
+        animations: []
+      };
+    };
+
+    DwimGraphics.prototype.renderClues = function(sprite) {
+      var action, bs, command, highlight, idx, label, mode, pid, program, xi, yi, _i, _j, _len, _ref, _ref1, _results;
       bs = this.block * .875;
       xi = 0;
       yi = 0;
       _ref = this.program_labels;
+      _results = [];
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
         label = _ref[_i];
         program = this.game_state.programs[label.id];
@@ -664,44 +674,35 @@
         this.ctx.restore();
         this.ctx.translate(this.block, 0);
         xi += 1;
-        pid = this.game_state.current_program_id;
-        phl = this.game_state.current_program_history.length;
-        if (pid !== label.id || phl === 0) {
-          mode = this.game_state.current_mode;
+        pid = sprite.program_id;
+        highlight = xi + sprite.program_idx;
+        if (pid === label.id) {
+          mode = 'unknown';
         } else {
-          mode = this.game_state.current_program_history[phl - 1].mode;
+          mode = this.game_state.current_mode;
         }
-        highlight = -1;
         for (idx = _j = 0, _ref1 = program.code.length; 0 <= _ref1 ? _j < _ref1 : _j > _ref1; idx = 0 <= _ref1 ? ++_j : --_j) {
           command = program.code.charAt(idx);
           this.ctx.fillStyle = this.instruction_colors[command];
           this.ctx.fillRect(0, 0, bs, bs);
-          was_unknown = mode === 'unknown';
-          if (!was_unknown) {
+          if (mode !== 'unknown') {
             action = mode.lookup[command];
             this.ctx.translate(bs / 2 + .5, bs / 2 + .5);
             if (action != null) {
-              if (pid !== label.id) {
-                this.renderCommand(mode.lookup[command], this.block);
-              }
+              this.renderCommand(mode.lookup[command], this.block);
               if (action.type === 'mode') {
                 mode = this.game_state.modes[action.idx];
               }
             } else {
-              if (pid !== label.id) {
-                this.renderShape('question', this.block / 2);
-              }
+              this.renderShape('question', this.block / 2);
               mode = 'unknown';
             }
             this.ctx.translate(-bs / 2 - .5, -bs / 2 - .5);
           }
-          if (pid === label.id && (idx === phl - 1 || (!was_unknown && mode === 'unknown' && idx === phl))) {
-            highlight = xi;
-          }
           this.ctx.translate(this.block, 0);
           xi += 1;
         }
-        if (highlight !== -1) {
+        if (pid === label.id) {
           this.ctx.save();
           this.ctx.translate(-(xi - highlight) * this.block, 0);
           this.ctx.strokeStyle = 'yellow';
@@ -710,9 +711,9 @@
           this.ctx.restore();
         }
         this.ctx.translate(this.block, 0);
-        xi += 1;
+        _results.push(xi += 1);
       }
-      return this.ctx.restore();
+      return _results;
     };
 
     DwimGraphics.prototype.renderMessage = function(fill_style, message) {

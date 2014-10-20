@@ -186,7 +186,6 @@
       this.current_mode = this.modes[0];
       this.current_program = [];
       this.current_program_id = -1;
-      this.current_program_history = [];
     }
 
     DwimState.prototype.requestBotMove = function(dir) {
@@ -215,8 +214,7 @@
       if (block.type === 'program') {
         if (this.current_program.length === 0) {
           this.current_program = this.programs[block.id].code.split('');
-          this.current_program_id = block.id;
-          return this.current_program_history = [];
+          return this.current_program_id = block.id;
         }
       }
     };
@@ -237,8 +235,7 @@
     };
 
     DwimState.prototype.doWhatMustBeDone = function() {
-      var command, old_mode, success, symbol;
-      old_mode = this.current_mode;
+      var command, success, symbol;
       if (this.current_program.length === 0) {
         return {
           success: false,
@@ -264,10 +261,6 @@
       if (!success) {
         this.current_program.unshift(symbol);
       }
-      this.current_program_history.push({
-        mode: old_mode,
-        command: command
-      });
       return {
         success: success,
         move: command
@@ -308,6 +301,8 @@
       this.gfx.sprites.push(this.bot_sprite);
       this.mode_sprites = this.gfx.makeModeSprites();
       this.gfx.sprites = this.gfx.sprites.concat(this.mode_sprites);
+      this.clues_sprite = this.gfx.makeCluesSprite();
+      this.gfx.sprites.push(this.clues_sprite);
     }
 
     Dwim.prototype.startRender = function() {
@@ -443,21 +438,25 @@
 
     Dwim.prototype.processProgram = function() {
       var move, new_pos, old_pos, old_prog, success, _ref;
-      if (!this.gfx.isAnimating() && this.state.current_program.length === 0) {
-        this.state.current_program_id = -1;
-      }
       if (!this.gfx.isAnimating() && this.state.current_program.length > 0 && !this.state.halted) {
         old_pos = this.bot_sprite.computePos();
         old_prog = this.state.current_program;
+        this.clues_sprite.program_id = this.state.current_program_id;
+        this.clues_sprite.program_idx = this.state.programs[this.state.current_program_id].code.length - this.state.current_program.length;
         _ref = this.state.doWhatMustBeDone(), success = _ref.success, move = _ref.move;
         if (success) {
           new_pos = this.bot_sprite.computePos();
           if (old_pos.x !== new_pos.x || old_pos.y !== new_pos.y) {
-            return this.bot_sprite.animateMove(old_pos, move.dir);
+            this.bot_sprite.animateMove(old_pos, move.dir);
           } else if (move.type === 'mode') {
             this.gfx.animatePopIn(this.mode_sprites[move.idx].animations, 1, 1);
-            return this.gfx.animatePopIn(this.bot_sprite.animations, 1, 1);
+            this.gfx.animatePopIn(this.bot_sprite.animations, 1, 1);
           }
+          return this.gfx.onAnimComplete((function(_this) {
+            return function() {
+              return _this.clues_sprite.program_id = -1;
+            };
+          })(this));
         } else if (move !== null) {
           this.bot_sprite.animateBump(old_pos, move.dir);
           return this.state.halted = true;
