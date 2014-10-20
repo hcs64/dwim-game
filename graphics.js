@@ -664,7 +664,11 @@
         this.ctx.restore();
         this.ctx.translate(this.block, 0);
         xi += 1;
-        mode = this.game_state.current_mode;
+        if (this.game_state.current_program_id === label.id) {
+          mode = 'unknown';
+        } else {
+          mode = this.game_state.current_mode;
+        }
         for (idx = _j = 0, _ref1 = program.code.length; 0 <= _ref1 ? _j < _ref1 : _j > _ref1; idx = 0 <= _ref1 ? ++_j : --_j) {
           command = program.code.charAt(idx);
           this.ctx.fillStyle = this.instruction_colors[command];
