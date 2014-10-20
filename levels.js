@@ -200,8 +200,8 @@ levels = {
   next_level: '8',
 },
 
-// 8, burn extra instructions
-'8': {
+// 9, burn extra instructions
+'9': {
   dims: {w: 10, h: 10},
   startpos: {x: 0, y: 0},
   exitpos: {x: 9, y: 8},
@@ -214,11 +214,11 @@ levels = {
   ],
   mappings: [{lookup: {}, symbols: []},
              {lookup: {}, symbols: []}],
-  next_level: '9'
+  next_level: 'end'
 },
 
-// 9, Tank!
-'9': {
+// 8, Tank!
+'8': {
   dims: {w: 10, h: 10},
   startpos: {x: 0, y: 0},
   exitpos: {x: 5, y: 5},
@@ -233,7 +233,7 @@ levels = {
              {lookup: {}, symbols: []},
              {lookup: {}, symbols: []},
              {lookup: {}, symbols: []}],
-  next_level: 'end'
+  next_level: '9'
 }
 
 };
