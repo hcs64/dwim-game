@@ -39,6 +39,7 @@ class DwimGraphics
     @message_bg_fill_style = '#000000'
 
     @computeOutlines()
+    @computeProgramLabels()
 
     @sprites = []
     @anim_complete_callbacks = []
@@ -63,6 +64,8 @@ class DwimGraphics
     g: '#00c000'  # green
     b: '#0000c0'  # blue
     p: '#c000c0'  # pink/purple/magenta
+
+  label_letters: ['a','b','c','d','e','f']
 
   computeOutlines: () ->
     @outline_links = []
@@ -97,6 +100,29 @@ class DwimGraphics
 
         was_in = is_in
 
+  computeProgramLabels: () ->
+    assigned = {}
+    @program_labels = []
+
+    d = Math.max(@game_state.Hi, @game_state.Wi)
+
+    for i in [0..2*d]
+      for j in [0..i]
+        x = i-j
+        y = j
+
+        if @game_state.level[x]? and  @game_state.level[x][y]?
+          b = @game_state.level[x][y]
+        else
+          continue
+
+        if b.type == 'program' and not assigned[b.id]
+          @program_labels.push(
+            x: x*@block, y: y*@block, id: b.id
+            letter: @label_letters[@program_labels.length]
+          )
+          assigned[b.id] = true
+
 ################
 
   render: (t) ->
@@ -118,6 +144,7 @@ class DwimGraphics
     @ctx.fillRect(0, 0, @cnv.width, @cnv.height)
 
     @renderGrid()
+    @renderLabels()
 
     @ctx.restore()
 
@@ -417,6 +444,19 @@ class DwimGraphics
     else
       @clues = []
 
+  renderLabels: ->
+    @ctx.save()
+
+    @ctx.translate(@board_dims.x+.5+@block/16, @board_dims.y+.5+@block/16)
+    @ctx.strokeStyle = 'white'
+    @ctx.lineWidth = 1
+
+    for label in @program_labels
+      @ctx.save()
+      @ctx.translate(label.x, label.y)
+      @renderLetter(label.letter)
+      @ctx.restore()
+
   renderClues: ->
     if @clues.length == 0
       return
@@ -624,5 +664,27 @@ class DwimGraphics
       @ctx.translate(5*scale, 0)
 
     @ctx.restore()
+
+  letterGraphics: {
+    a: [ [[0,1],[1.5,1],[1.5,3],[0,3],[0,2],[1.5,2]] ]
+    b: [ [[0,0],[0,3],[1.5,3],[1.5,1.5],[0,1.5]] ]
+    c: [ [[1.5,1],[0,1],[0,3],[1.5,3]] ]
+    d: [ [[2,0],[2,3],[.5,3],[.5,1.5],[2,1.5]] ]
+    e: [ [[0,2],[1.5,2],[1.5,1],[0,1],[0,3],[1.5,3]] ]
+    f: [ [[.5,1.5],[1.5,1.5]], [[2,0],[1,0],[1,3]] ]
+  }
+
+  renderLetter: (l, scale = @block/2) ->
+
+    g = @letterGraphics[l]
+    if not g?
+      return
+
+    @ctx.beginPath()
+    for line in g
+      @ctx.moveTo(line[0][0]/4*scale, line[0][1]/4*scale)
+      for point in line[1..]
+        @ctx.lineTo(point[0]/4*scale, point[1]/4*scale)
+    @ctx.stroke()
 
 window.DwimGraphics = DwimGraphics
