@@ -471,7 +471,11 @@ class DwimGraphics
       @ctx.translate(@block, 0)
       xi += 1
 
-      mode = @game_state.current_mode
+      if @game_state.current_program_id == label.id
+        # display only colors for the current program
+        mode = 'unknown'
+      else
+        mode = @game_state.current_mode
 
       for idx in [0...program.code.length]
         command = program.code.charAt(idx)
