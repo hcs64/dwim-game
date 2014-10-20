@@ -664,14 +664,18 @@
         this.ctx.restore();
         this.ctx.translate(this.block, 0);
         xi += 1;
-        mode = this.game_state.current_mode;
+        pid = this.game_state.current_program_id;
+        phl = this.game_state.current_program_history.length;
+        if (pid !== label.id || phl === 0) {
+          mode = this.game_state.current_mode;
+        } else {
+          mode = this.game_state.current_program_history[phl - 1].mode;
+        }
         highlight = -1;
         for (idx = _j = 0, _ref1 = program.code.length; 0 <= _ref1 ? _j < _ref1 : _j > _ref1; idx = 0 <= _ref1 ? ++_j : --_j) {
           command = program.code.charAt(idx);
           this.ctx.fillStyle = this.instruction_colors[command];
           this.ctx.fillRect(0, 0, bs, bs);
-          phl = this.game_state.current_program_history.length;
-          pid = this.game_state.current_program_id;
           was_unknown = mode === 'unknown';
           if (!was_unknown) {
             action = mode.lookup[command];
@@ -680,8 +684,8 @@
               if (pid !== label.id) {
                 this.renderCommand(mode.lookup[command], this.block);
               }
-              if (mode.lookup[command].type === 'mode') {
-                mode = this.game_state.modes[mode.lookup[command].idx];
+              if (action.type === 'mode') {
+                mode = this.game_state.modes[action.idx];
               }
             } else {
               if (pid !== label.id) {
