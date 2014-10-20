@@ -1,37 +1,30 @@
 class DwimGraphics
   constructor: (@parent_div, @game_state) ->
-    # constants of layout
+    # layout constants
     @block = 32
 
     @mode_dims =
       x: 10
-      y: 72
-      width: @block*3
-      height: @block*10
-    @mode_appearance = [
-      {x: 0, y: 0, invert: false, circle: true},
-      {x: @block*2, y: 0, invert: true, circle: true},
-      {x: 0, y: @block*6, invert: false, circle: false},
-      {x: @block*2, y: @block*6, invert: true, circle: false}]
-    @record_dims =
-      x: @mode_dims.x + @mode_dims.width + @block
       y: 10
-      width: @block*10
-      height: @block*2
-      Wi: 10
-      Hi: 2
+      width: @block*3
+      height: @block*11
+    @mode_appearance = [
+      {x: 0, y: 0, shape: 'circle'}
+      {x: @block*2, y: 0, shape: 'diamond'}
+      {x: 0, y: @block*6, shape: 'clover'}
+      {x: @block*2, y: @block*6, shape: 'pinch'}]
     @board_dims =
       x: @mode_dims.x+@mode_dims.width+@block
-      y: @record_dims.y+@record_dims.height+@block
+      y: 10+@block/2
       width: @block*10
       height: @block*10
     @clues_dims =
       x: 10
-      y: @board_dims.y+@board_dims.height
+      y: @mode_dims.y+@mode_dims.height
       width: @block*14
-      height: @block*2
+      height: @block*6
       Wi: 14
-      Hi: 2
+      Hi: 6
 
     @message_pos =
       x: @board_dims.x + @board_dims.width/2
@@ -46,12 +39,10 @@ class DwimGraphics
     @message_bg_fill_style = '#000000'
 
     @computeOutlines()
+    @computeProgramLabels()
 
     @sprites = []
     @anim_complete_callbacks = []
-    @record_sprites = []
-    @record_sprite_clock = 0
-    @addNextRecordSprite()
 
     @clues = []
 
@@ -73,6 +64,8 @@ class DwimGraphics
     g: '#00c000'  # green
     b: '#0000c0'  # blue
     p: '#c000c0'  # pink/purple/magenta
+
+  label_letters: ['a','b','c','d','e','f']
 
   computeOutlines: () ->
     @outline_links = []
@@ -107,6 +100,20 @@ class DwimGraphics
 
         was_in = is_in
 
+  computeProgramLabels: () ->
+    assigned = {}
+    @program_labels = []
+
+    for y in [0...@game_state.Hi]
+      for x in [0...@game_state.Wi]
+        b = @game_state.level[x][y]
+
+        if b.type == 'program' and not assigned[b.id]
+          @program_labels[b.id] =
+            x: x*@block, y: y*@block, id: b.id
+            letter: @label_letters[b.id]
+          assigned[b.id] = true
+
 ################
 
   render: (t) ->
@@ -128,6 +135,7 @@ class DwimGraphics
     @ctx.fillRect(0, 0, @cnv.width, @cnv.height)
 
     @renderGrid()
+    @renderLabels()
 
     @ctx.restore()
 
@@ -344,16 +352,24 @@ class DwimGraphics
 
     temp_sym = mode.symbols
     current_symbol = null
-    if mode == @game_state.current_mode and
-       @game_state.current_program.length > 0
-
-      current_symbol = @game_state.current_program[0]
-      if not (@game_state.current_program[0] in mode.symbols)
-        temp_sym = mode.symbols.concat([current_symbol])
-
-    len = temp_sym.length
 
     @ctx.strokeStyle = 'white'
+
+    if mode == @game_state.current_mode
+      @ctx.save()
+
+      @ctx.lineWidth = 2.5*sprite.scale
+      @ctx.strokeRect(-@block*.25,-@block*.25,@block*1.75,@block*5.5)
+
+      @ctx.restore()
+      
+      if @game_state.current_program.length > 0
+
+        current_symbol = @game_state.current_program[0]
+        if not (@game_state.current_program[0] in mode.symbols)
+          temp_sym = mode.symbols.concat([current_symbol])
+
+    len = temp_sym.length
 
     # idx
     @renderNumber(mode.idx+1)
@@ -385,8 +401,11 @@ class DwimGraphics
     if current_symbol?
       idx = temp_sym.indexOf(current_symbol)
 
-      @ctx.lineWidth = 3
+      @ctx.save()
+      @ctx.strokeStyle = 'yellow'
+      @ctx.lineWidth = 4
       @ctx.strokeRect(0, 0+idx*ocs, ocs, ocs)
+      @ctx.restore()
 
   animatePopIn: (anims, low_scale, scale, pos) ->
     pop_0 =
@@ -402,256 +421,91 @@ class DwimGraphics
     anims.push(pop_0)
     anims.push(pop_1)
 
-  addNextRecordSprite: ->
-    nrs = @next_record_sprite =
-      xi: 0
-      yi: 0
-      gfx: this
-      computePos: ->
-        x: @gfx.record_dims.x + (.5 + @xi) * @gfx.block
-        y: @gfx.record_dims.y + (.5 + @yi) * @gfx.block
-      render: (sprite) =>
-        @ctx.strokeStyle = 'white'
-        @ctx.lineWidth = 2
-        if sprite.scale > 0
-          @ctx.scale(sprite.scale, sprite.scale)
-          @renderShape('square', @block*.625)
-      scale: 1
-      clock: 0
-      animations: []
-    {x:nrs.x, y:nrs.y} = nrs.computePos()
-    @sprites.push(nrs)
-
-  advanceNextRecordSprite: (count) ->
-    nrs = @next_record_sprite
-    width = @record_dims.Wi
-    old_pos = {xi: nrs.xi, yi: nrs.yi}
-    nrs.clock += count
-    
-    nrs.xi = nrs.clock
-    nrs.yi = 0
-    if @record_sprites.length > 0
-      nrs.xi -= @record_sprites[0].clock
-
-    while nrs.xi >= width
-      nrs.xi -= width
-      nrs.yi += 1
-
-    {x:x, y:y} = nrs.computePos()
-
-    if count == 0
-      # everything is scrolling
-      @next_record_sprite.animations.push(
-        duration: 125
-        lerp: [
-          {name: 'x', v1: x},
-          {name: 'y', v1: y}
-        ]
-      )
-    else
-      # wait a bit for pop
-      @next_record_sprite.animations.push(
-        duration: 50
-      )
-      @next_record_sprite.animations.push(
-        duration: 75
-        lerp: [
-          {name: 'x', v1: x},
-          {name: 'y', v1: y}
-        ]
-      )
-
-  renderRecordSpriteArrow: (sprite) =>
-    if sprite.scale > 0
-      @ctx.scale(sprite.scale, sprite.scale)
-      if sprite.programmed
-        bs = @block * 7/16
-        @ctx.fillStyle = @instruction_colors[sprite.command]
-        @ctx.fillRect(-bs-.5, -bs-.5, bs*2, bs*2)
-      @ctx.strokeStyle = 'white'
-
-      if sprite.dir?
-        @renderArrow(sprite.dir.theta, @block)
-      else
-        @renderBotMode(sprite.mode_idx, @block)
-
   renderBotMode: (mode, radius) ->
     if radius == 0
       return
     mode_appearance = @mode_appearance[mode]
-    if mode_appearance.invert
-      @ctx.strokeStyle = 'black'
-      @ctx.fillStyle = 'white'
-    else
-      @ctx.strokeStyle = 'white'
-      @ctx.fillStyle = 'black'
+
+    @ctx.strokeStyle = 'white'
+    @ctx.fillStyle = 'black'
 
     @ctx.lineWidth = 1.5
-    if mode_appearance.circle
-      @renderShape('circle', radius*.4, true)
-    else
-      @renderShape('diamond', radius*.4, true)
+    @renderShape(mode_appearance.shape, radius*.4, true)
  
-  # record sprite insertion behaviors
-  # normal: pop in
-  # last column in all-but-last row: pop
-  # last column in last row: pop and scroll
-  addRecordSprite: (move) ->
-    height = @record_dims.Hi
-    width = @record_dims.Wi
-
-    sprite =
-      x: @record_dims.x + (.5 + @record_sprites.length) * @block + .5
-      y: @record_dims.y + .5 * @block + .5
-      scale: 0
-      render: @renderRecordSpriteArrow
-      programmed: false
-      clock: @record_sprite_clock
-      animations: []
-
-    if move.type == 'move'
-      sprite.dir = move.dir
-    else
-      sprite.mode_idx = move.idx
-
-    while sprite.x > @record_dims.x + @record_dims.width
-      sprite.x -= @record_dims.width
-      sprite.y += @block
-
-    @record_sprites.push(sprite)
-    @record_sprite_clock += 1
-
-    if @record_sprites.length == height * width
-      @scrollRecordSprites([sprite])
-    else
-      @animatePopIn(sprite.animations, 0, 1, {x:sprite.x, y:sprite.y})
-
-    @advanceNextRecordSprite(1)
-
-    @sprites.push(sprite)
-
-  addProgramSprites: () ->
-    new_sprites = []
-    for command in @game_state.current_program
-      height = @record_dims.Hi
-      width = @record_dims.Wi
-
-      sprite =
-        x: @record_dims.x + (.5 + @record_sprites.length) * @block + .5
-        y: @record_dims.y + .5 * @block + .5
-        scale: 0
-        command: command
-        programmed: true
-        render: (sprite) =>
-          if sprite.scale > 0
-            @ctx.scale(sprite.scale, sprite.scale)
-            bs = @block * 7/16
-            @ctx.fillStyle = @instruction_colors[sprite.command]
-            @ctx.fillRect(-bs-.5, -bs-.5, bs*2, bs*2)
-        clock: @record_sprite_clock
-        animations: []
-
-      while sprite.x > @record_dims.x + @record_dims.width
-        sprite.x -= @record_dims.width
-        sprite.y += @block
-
-      @record_sprites.push(sprite)
-      @record_sprite_clock += 1
-      new_sprites.push(sprite)
-
-    if @record_sprites.length >= height * width
-      @scrollRecordSprites(new_sprites)
-    else
-      for sprite in new_sprites
-        @animatePopIn(sprite.animations, 0, 1, {x:sprite.x, y:sprite.y})
-
-    @sprites = @sprites.concat(new_sprites)
-        
-  replaceNextRecordSprite: (move) ->
-    for sprite in @record_sprites
-      if sprite.clock == @next_record_sprite.clock
-        sprite.render = @renderRecordSpriteArrow
-        if move.type == 'move'
-          sprite.dir = move.dir
-        else
-          sprite.mode_idx = move.idx
-        sprite.programmed = true
-        @animatePopIn(sprite.animations, 1, 1)
-    @advanceNextRecordSprite(1)
-
-  scrollRecordSprites: (new_sprites) ->
-    width = @record_dims.Wi
-    for sprite in @record_sprites[0...width]
-      sprite.animations.push(
-        duration: 125
-        lerp: [ {name: 'scale', v0: 1, v1: 0},
-                {name: 'y', v1: @record_dims.y-@block} ]
-        remove_on_finish: true
-      )
-      
-    @record_sprites = @record_sprites[width..]
-
-    for sprite,i in @record_sprites
-      desty = @record_dims.y+(.5  + i//width)*@block + .5
-      if sprite in new_sprites
-        # this does a mix of pop in and scroll up
-        sprite.animations.push(
-          duration: 100
-          lerp: [ {name: 'y', v1: (desty-sprite.y)*(100/125)+sprite.y},
-                  {name: 'scale', v0: 0, v1: 1.25}
-                ]
-        )
-        sprite.animations.push(
-          duration: 25
-          lerp: [ {name: 'y', v1: desty},
-                  {name: 'scale', v1: 1}
-                ]
-        )
-      else
-        sprite.animations = [
-          duration: 125
-          lerp: [ {name: 'y', v1: desty} ]
-          set: [ {name: 'scale', v: 1} ]
-        ]
-
-    @advanceNextRecordSprite(0)
-
-  showClue: (where) ->
-    if where == null
-      @clues = []
-      return
-
-    xi = (where.x - @board_dims.x)//@block
-    yi = (where.y - @board_dims.y)//@block
-
-    if @game_state.level[xi]? and @game_state.level[xi][yi]? and
-       @game_state.level[xi][yi].type == 'program'
-      @clues = [ @game_state.programs[@game_state.level[xi][yi].id] ]
-    else
-      @clues = []
-
-  renderClues: ->
-    if @clues.length == 0
-      return
-
+  renderLabels: ->
     @ctx.save()
 
-    clue = @clues[0]
+    @ctx.translate(@board_dims.x+.5+@block/16, @board_dims.y+.5+@block/16)
+    @ctx.strokeStyle = 'white'
+    @ctx.lineWidth = 1
+
+    for label in @program_labels
+      @ctx.save()
+      @ctx.translate(label.x, label.y)
+      @renderLetter(label.letter)
+      @ctx.restore()
+
+  renderClues: ->
+    @ctx.save()
 
     @ctx.translate(@clues_dims.x+@block*.5, @clues_dims.y+@block*.5)
     bs = @block * .875
     
     xi = 0
-    for idx in [0...clue.code.length]
-      command = clue.code.charAt(idx)
-      @ctx.fillStyle = @instruction_colors[command]
-      @ctx.fillRect(0,0,bs,bs)
-      @ctx.translate(@block, 0)
+    yi = 0
 
-      xi += 1
-      if xi >= @clues_dims.Wi
-        @ctx.translate(-xi*@block, @block)
+    for label in @program_labels
+      program = @game_state.programs[label.id]
+      if xi + program.code.length + 2 >= @clues_dims.Wi
+        @ctx.translate(-xi*@block, @block*1.5)
         xi = 0
+        yi += 1.5
+
+      @ctx.strokeStyle = 'white'
+
+      @ctx.save()
+      @ctx.translate(.5, .5+@block*.125)
+      @renderLetter(label.letter, @block*.75)
+      @ctx.restore()
+
+      @ctx.translate(@block, 0)
+      xi += 1
+
+      mode = @game_state.current_mode
+
+      for idx in [0...program.code.length]
+        command = program.code.charAt(idx)
+        @ctx.fillStyle = @instruction_colors[command]
+        @ctx.fillRect(0,0,bs,bs)
+        
+        if mode != 'unknown'
+          action = mode.lookup[command]
+
+          @ctx.translate(bs/2+.5, bs/2+.5)
+          if action?
+            @renderCommand(mode.lookup[command], @block)
+
+            if mode.lookup[command].type == 'mode'
+              mode = @game_state.modes[mode.lookup[command].idx]
+          else
+            @renderShape('question', @block/2)
+            mode = 'unknown'
+          @ctx.translate(-bs/2-.5, -bs/2-.5)
+
+        if @game_state.current_program_id == label.id and
+           idx == @game_state.current_program_history.length-1
+          @ctx.save()
+          @ctx.strokeStyle = 'yellow'
+          @ctx.lineWidth = 4
+          @ctx.strokeRect(0,0,bs,bs)
+          @ctx.restore()
+
+        @ctx.translate(@block, 0)
+
+        xi += 1
+
+      @ctx.translate(@block, 0)
+      xi += 1
 
     @ctx.restore()
 
@@ -758,6 +612,21 @@ class DwimGraphics
         @ctx.lineTo(cb, ics)
         @ctx.lineTo(0, ics-cb)
         @ctx.closePath()
+      when 'clover'
+        r = radius*.75
+        r2 = r/2
+        @ctx.moveTo(0,-r2)
+        @ctx.arc( r2,-r2, r2,     Math.PI, -1.5*Math.PI)
+        @ctx.arc( r2, r2, r2, -.5*Math.PI,      Math.PI)
+        @ctx.arc(-r2, r2, r2,           0,  -.5*Math.PI)
+        @ctx.arc(-r2,-r2, r2,-1.5*Math.PI,    0)
+      when 'pinch'
+        r = radius*.75
+        @ctx.moveTo(-r,-r)
+        @ctx.quadraticCurveTo(0,0, r,-r)
+        @ctx.quadraticCurveTo(0,0, r, r)
+        @ctx.quadraticCurveTo(0,0,-r, r)
+        @ctx.quadraticCurveTo(0,0,-r,-r)
   
     if fill
       @ctx.fill()
@@ -822,5 +691,27 @@ class DwimGraphics
       @ctx.translate(5*scale, 0)
 
     @ctx.restore()
+
+  letterGraphics: {
+    a: [ [[0,1],[1.5,1],[1.5,3],[0,3],[0,2],[1.5,2]] ]
+    b: [ [[0,0],[0,3],[1.5,3],[1.5,1.5],[0,1.5]] ]
+    c: [ [[1.5,1],[0,1],[0,3],[1.5,3]] ]
+    d: [ [[2,0],[2,3],[.5,3],[.5,1.5],[2,1.5]] ]
+    e: [ [[0,2],[1.5,2],[1.5,1],[0,1],[0,3],[1.5,3]] ]
+    f: [ [[.5,1.5],[1.5,1.5]], [[2,0],[1,0],[1,3]] ]
+  }
+
+  renderLetter: (l, scale = @block/2) ->
+
+    g = @letterGraphics[l]
+    if not g?
+      return
+
+    @ctx.beginPath()
+    for line in g
+      @ctx.moveTo(line[0][0]/4*scale, line[0][1]/4*scale)
+      for point in line[1..]
+        @ctx.lineTo(point[0]/4*scale, point[1]/4*scale)
+    @ctx.stroke()
 
 window.DwimGraphics = DwimGraphics

@@ -109,6 +109,8 @@ class DwimState
       mode.idx = idx
     @current_mode = @modes[0]
     @current_program = []
+    @current_program_id = -1
+    @current_program_history = []
 
   requestBotMove: (dir) ->
     dest = {x: @bot.x + dir.dx, y: @bot.y + dir.dy}
@@ -133,6 +135,8 @@ class DwimState
     if block.type == 'program'
       if @current_program.length == 0
         @current_program = @programs[block.id].code.split('')
+        @current_program_id = block.id
+        @current_program_history = []
 
   mappingLookup: (mode, symbol) ->
     if symbol of mode.lookup
@@ -164,6 +168,8 @@ class DwimState
     if not success
       @current_program.unshift(symbol)
 
+    @current_program_history.push(command)
+
     return {success: success, move: command}
 
   insertNeededMapping: (new_command) ->
@@ -194,15 +200,11 @@ class Dwim
 
   startRender: ->
     registerKeyFunction(@keyboardCB)
-    registerMouseFunction(@parent_div, @mouseCB)
-
     requestAnimationFrame(@render)
     rendering = true
 
   render: (absolute_t) =>
     if @state.halted
-      @gfx.showClue(null)
-
       if @state.won
         @linkNextLevel()
       else
@@ -216,6 +218,7 @@ class Dwim
       requestAnimationFrame(@render)
       @rendering = true
     else
+      @gfx.render(absolute_t)
       @rendering = false
 
   keyboardCB: (key) =>
@@ -233,13 +236,6 @@ class Dwim
       requestAnimationFrame(@render)
       @rendering = true
 
-  mouseCB: (what, where) =>
-    @gfx.showClue(where)
-
-    if not @rendering
-      requestAnimationFrame(@render)
-      @rendering = true
-
   processPlayerMove: (move) ->
     if @state.current_program.length > 0
       if not @state.insertNeededMapping({type: 'move', dir: move})
@@ -252,11 +248,6 @@ class Dwim
       old_pos = @bot_sprite.computePos()
       if @state.requestBotMove(move)
         @bot_sprite.animateMove(old_pos, move)
-        
-        @gfx.addRecordSprite({type: 'move', dir: move})
-
-        if @state.current_program.length > 0
-          @gfx.onAnimComplete( => @gfx.addProgramSprites())
       else
         @bot_sprite.animateBump(old_pos, move)
 
@@ -278,9 +269,10 @@ class Dwim
       @gfx.animatePopIn(@mode_sprites[mode_idx].animations, 1, 1)
       @gfx.animatePopIn(@bot_sprite.animations, 1, 1)
 
-      @gfx.addRecordSprite({type: 'mode', idx: mode_idx})
-
   processProgram: ->
+    if not @gfx.isAnimating() and @state.current_program.length == 0
+      @state.current_program_id = -1
+
     if not @gfx.isAnimating() and
        @state.current_program.length > 0 and
        not @state.halted
@@ -295,10 +287,6 @@ class Dwim
           @gfx.animatePopIn(@mode_sprites[move.idx].animations, 1, 1)
           @gfx.animatePopIn(@bot_sprite.animations, 1, 1)
 
-        @gfx.replaceNextRecordSprite(move)
-
-        if @state.current_program != old_prog
-          @gfx.onAnimComplete( => @gfx.addProgramSprites())
       else if move != null
         @bot_sprite.animateBump(old_pos, move.dir)
         @state.halted = true

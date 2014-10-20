@@ -8,60 +8,47 @@
     function DwimGraphics(parent_div, game_state) {
       this.parent_div = parent_div;
       this.game_state = game_state;
-      this.renderRecordSpriteArrow = __bind(this.renderRecordSpriteArrow, this);
       this.renderModeSprite = __bind(this.renderModeSprite, this);
       this.renderBot = __bind(this.renderBot, this);
       this.block = 32;
       this.mode_dims = {
         x: 10,
-        y: 72,
+        y: 10,
         width: this.block * 3,
-        height: this.block * 10
+        height: this.block * 11
       };
       this.mode_appearance = [
         {
           x: 0,
           y: 0,
-          invert: false,
-          circle: true
+          shape: 'circle'
         }, {
           x: this.block * 2,
           y: 0,
-          invert: true,
-          circle: true
+          shape: 'diamond'
         }, {
           x: 0,
           y: this.block * 6,
-          invert: false,
-          circle: false
+          shape: 'clover'
         }, {
           x: this.block * 2,
           y: this.block * 6,
-          invert: true,
-          circle: false
+          shape: 'pinch'
         }
       ];
-      this.record_dims = {
-        x: this.mode_dims.x + this.mode_dims.width + this.block,
-        y: 10,
-        width: this.block * 10,
-        height: this.block * 2,
-        Wi: 10,
-        Hi: 2
-      };
       this.board_dims = {
         x: this.mode_dims.x + this.mode_dims.width + this.block,
-        y: this.record_dims.y + this.record_dims.height + this.block,
+        y: 10 + this.block / 2,
         width: this.block * 10,
         height: this.block * 10
       };
       this.clues_dims = {
         x: 10,
-        y: this.board_dims.y + this.board_dims.height,
+        y: this.mode_dims.y + this.mode_dims.height,
         width: this.block * 14,
-        height: this.block * 2,
+        height: this.block * 6,
         Wi: 14,
-        Hi: 2
+        Hi: 6
       };
       this.message_pos = {
         x: this.board_dims.x + this.board_dims.width / 2,
@@ -74,11 +61,9 @@
       this.win_fill_style = '#00c000';
       this.message_bg_fill_style = '#000000';
       this.computeOutlines();
+      this.computeProgramLabels();
       this.sprites = [];
       this.anim_complete_callbacks = [];
-      this.record_sprites = [];
-      this.record_sprite_clock = 0;
-      this.addNextRecordSprite();
       this.clues = [];
       this.cnv = document.createElement('canvas');
       this.cnv.width = this.board_dims.x + this.board_dims.width + this.block;
@@ -100,6 +85,8 @@
       b: '#0000c0',
       p: '#c000c0'
     };
+
+    DwimGraphics.prototype.label_letters = ['a', 'b', 'c', 'd', 'e', 'f'];
 
     DwimGraphics.prototype.computeOutlines = function() {
       var is_in, was_in, x, y, _i, _j, _k, _ref, _ref1, _ref2, _results;
@@ -159,6 +146,35 @@
       return _results;
     };
 
+    DwimGraphics.prototype.computeProgramLabels = function() {
+      var assigned, b, x, y, _i, _ref, _results;
+      assigned = {};
+      this.program_labels = [];
+      _results = [];
+      for (y = _i = 0, _ref = this.game_state.Hi; 0 <= _ref ? _i < _ref : _i > _ref; y = 0 <= _ref ? ++_i : --_i) {
+        _results.push((function() {
+          var _j, _ref1, _results1;
+          _results1 = [];
+          for (x = _j = 0, _ref1 = this.game_state.Wi; 0 <= _ref1 ? _j < _ref1 : _j > _ref1; x = 0 <= _ref1 ? ++_j : --_j) {
+            b = this.game_state.level[x][y];
+            if (b.type === 'program' && !assigned[b.id]) {
+              this.program_labels[b.id] = {
+                x: x * this.block,
+                y: y * this.block,
+                id: b.id,
+                letter: this.label_letters[b.id]
+              };
+              _results1.push(assigned[b.id] = true);
+            } else {
+              _results1.push(void 0);
+            }
+          }
+          return _results1;
+        }).call(this));
+      }
+      return _results;
+    };
+
     DwimGraphics.prototype.render = function(t) {
       var fcn;
       this.renderBG();
@@ -178,6 +194,7 @@
       this.ctx.fillStyle = 'black';
       this.ctx.fillRect(0, 0, this.cnv.width, this.cnv.height);
       this.renderGrid();
+      this.renderLabels();
       return this.ctx.restore();
     };
 
@@ -512,14 +529,20 @@
       ics = this.block * .875;
       temp_sym = mode.symbols;
       current_symbol = null;
-      if (mode === this.game_state.current_mode && this.game_state.current_program.length > 0) {
-        current_symbol = this.game_state.current_program[0];
-        if (!(_ref = this.game_state.current_program[0], __indexOf.call(mode.symbols, _ref) >= 0)) {
-          temp_sym = mode.symbols.concat([current_symbol]);
+      this.ctx.strokeStyle = 'white';
+      if (mode === this.game_state.current_mode) {
+        this.ctx.save();
+        this.ctx.lineWidth = 2.5 * sprite.scale;
+        this.ctx.strokeRect(-this.block * .25, -this.block * .25, this.block * 1.75, this.block * 5.5);
+        this.ctx.restore();
+        if (this.game_state.current_program.length > 0) {
+          current_symbol = this.game_state.current_program[0];
+          if (!(_ref = this.game_state.current_program[0], __indexOf.call(mode.symbols, _ref) >= 0)) {
+            temp_sym = mode.symbols.concat([current_symbol]);
+          }
         }
       }
       len = temp_sym.length;
-      this.ctx.strokeStyle = 'white';
       this.renderNumber(mode.idx + 1);
       this.ctx.save();
       this.ctx.translate(this.block + .5, this.block * .25 + .5);
@@ -543,8 +566,11 @@
       this.ctx.restore();
       if (current_symbol != null) {
         idx = temp_sym.indexOf(current_symbol);
-        this.ctx.lineWidth = 3;
-        return this.ctx.strokeRect(0, 0 + idx * ocs, ocs, ocs);
+        this.ctx.save();
+        this.ctx.strokeStyle = 'yellow';
+        this.ctx.lineWidth = 4;
+        this.ctx.strokeRect(0, 0 + idx * ocs, ocs, ocs);
+        return this.ctx.restore();
       }
     };
 
@@ -585,341 +611,90 @@
       return anims.push(pop_1);
     };
 
-    DwimGraphics.prototype.addNextRecordSprite = function() {
-      var nrs, _ref;
-      nrs = this.next_record_sprite = {
-        xi: 0,
-        yi: 0,
-        gfx: this,
-        computePos: function() {
-          return {
-            x: this.gfx.record_dims.x + (.5 + this.xi) * this.gfx.block,
-            y: this.gfx.record_dims.y + (.5 + this.yi) * this.gfx.block
-          };
-        },
-        render: (function(_this) {
-          return function(sprite) {
-            _this.ctx.strokeStyle = 'white';
-            _this.ctx.lineWidth = 2;
-            if (sprite.scale > 0) {
-              _this.ctx.scale(sprite.scale, sprite.scale);
-              return _this.renderShape('square', _this.block * .625);
-            }
-          };
-        })(this),
-        scale: 1,
-        clock: 0,
-        animations: []
-      };
-      _ref = nrs.computePos(), nrs.x = _ref.x, nrs.y = _ref.y;
-      return this.sprites.push(nrs);
-    };
-
-    DwimGraphics.prototype.advanceNextRecordSprite = function(count) {
-      var nrs, old_pos, width, x, y, _ref;
-      nrs = this.next_record_sprite;
-      width = this.record_dims.Wi;
-      old_pos = {
-        xi: nrs.xi,
-        yi: nrs.yi
-      };
-      nrs.clock += count;
-      nrs.xi = nrs.clock;
-      nrs.yi = 0;
-      if (this.record_sprites.length > 0) {
-        nrs.xi -= this.record_sprites[0].clock;
-      }
-      while (nrs.xi >= width) {
-        nrs.xi -= width;
-        nrs.yi += 1;
-      }
-      _ref = nrs.computePos(), x = _ref.x, y = _ref.y;
-      if (count === 0) {
-        return this.next_record_sprite.animations.push({
-          duration: 125,
-          lerp: [
-            {
-              name: 'x',
-              v1: x
-            }, {
-              name: 'y',
-              v1: y
-            }
-          ]
-        });
-      } else {
-        this.next_record_sprite.animations.push({
-          duration: 50
-        });
-        return this.next_record_sprite.animations.push({
-          duration: 75,
-          lerp: [
-            {
-              name: 'x',
-              v1: x
-            }, {
-              name: 'y',
-              v1: y
-            }
-          ]
-        });
-      }
-    };
-
-    DwimGraphics.prototype.renderRecordSpriteArrow = function(sprite) {
-      var bs;
-      if (sprite.scale > 0) {
-        this.ctx.scale(sprite.scale, sprite.scale);
-        if (sprite.programmed) {
-          bs = this.block * 7 / 16;
-          this.ctx.fillStyle = this.instruction_colors[sprite.command];
-          this.ctx.fillRect(-bs - .5, -bs - .5, bs * 2, bs * 2);
-        }
-        this.ctx.strokeStyle = 'white';
-        if (sprite.dir != null) {
-          return this.renderArrow(sprite.dir.theta, this.block);
-        } else {
-          return this.renderBotMode(sprite.mode_idx, this.block);
-        }
-      }
-    };
-
     DwimGraphics.prototype.renderBotMode = function(mode, radius) {
       var mode_appearance;
       if (radius === 0) {
         return;
       }
       mode_appearance = this.mode_appearance[mode];
-      if (mode_appearance.invert) {
-        this.ctx.strokeStyle = 'black';
-        this.ctx.fillStyle = 'white';
-      } else {
-        this.ctx.strokeStyle = 'white';
-        this.ctx.fillStyle = 'black';
-      }
+      this.ctx.strokeStyle = 'white';
+      this.ctx.fillStyle = 'black';
       this.ctx.lineWidth = 1.5;
-      if (mode_appearance.circle) {
-        return this.renderShape('circle', radius * .4, true);
-      } else {
-        return this.renderShape('diamond', radius * .4, true);
-      }
+      return this.renderShape(mode_appearance.shape, radius * .4, true);
     };
 
-    DwimGraphics.prototype.addRecordSprite = function(move) {
-      var height, sprite, width;
-      height = this.record_dims.Hi;
-      width = this.record_dims.Wi;
-      sprite = {
-        x: this.record_dims.x + (.5 + this.record_sprites.length) * this.block + .5,
-        y: this.record_dims.y + .5 * this.block + .5,
-        scale: 0,
-        render: this.renderRecordSpriteArrow,
-        programmed: false,
-        clock: this.record_sprite_clock,
-        animations: []
-      };
-      if (move.type === 'move') {
-        sprite.dir = move.dir;
-      } else {
-        sprite.mode_idx = move.idx;
-      }
-      while (sprite.x > this.record_dims.x + this.record_dims.width) {
-        sprite.x -= this.record_dims.width;
-        sprite.y += this.block;
-      }
-      this.record_sprites.push(sprite);
-      this.record_sprite_clock += 1;
-      if (this.record_sprites.length === height * width) {
-        this.scrollRecordSprites([sprite]);
-      } else {
-        this.animatePopIn(sprite.animations, 0, 1, {
-          x: sprite.x,
-          y: sprite.y
-        });
-      }
-      this.advanceNextRecordSprite(1);
-      return this.sprites.push(sprite);
-    };
-
-    DwimGraphics.prototype.addProgramSprites = function() {
-      var command, height, new_sprites, sprite, width, _i, _j, _len, _len1, _ref;
-      new_sprites = [];
-      _ref = this.game_state.current_program;
+    DwimGraphics.prototype.renderLabels = function() {
+      var label, _i, _len, _ref, _results;
+      this.ctx.save();
+      this.ctx.translate(this.board_dims.x + .5 + this.block / 16, this.board_dims.y + .5 + this.block / 16);
+      this.ctx.strokeStyle = 'white';
+      this.ctx.lineWidth = 1;
+      _ref = this.program_labels;
+      _results = [];
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        command = _ref[_i];
-        height = this.record_dims.Hi;
-        width = this.record_dims.Wi;
-        sprite = {
-          x: this.record_dims.x + (.5 + this.record_sprites.length) * this.block + .5,
-          y: this.record_dims.y + .5 * this.block + .5,
-          scale: 0,
-          command: command,
-          programmed: true,
-          render: (function(_this) {
-            return function(sprite) {
-              var bs;
-              if (sprite.scale > 0) {
-                _this.ctx.scale(sprite.scale, sprite.scale);
-                bs = _this.block * 7 / 16;
-                _this.ctx.fillStyle = _this.instruction_colors[sprite.command];
-                return _this.ctx.fillRect(-bs - .5, -bs - .5, bs * 2, bs * 2);
-              }
-            };
-          })(this),
-          clock: this.record_sprite_clock,
-          animations: []
-        };
-        while (sprite.x > this.record_dims.x + this.record_dims.width) {
-          sprite.x -= this.record_dims.width;
-          sprite.y += this.block;
-        }
-        this.record_sprites.push(sprite);
-        this.record_sprite_clock += 1;
-        new_sprites.push(sprite);
+        label = _ref[_i];
+        this.ctx.save();
+        this.ctx.translate(label.x, label.y);
+        this.renderLetter(label.letter);
+        _results.push(this.ctx.restore());
       }
-      if (this.record_sprites.length >= height * width) {
-        this.scrollRecordSprites(new_sprites);
-      } else {
-        for (_j = 0, _len1 = new_sprites.length; _j < _len1; _j++) {
-          sprite = new_sprites[_j];
-          this.animatePopIn(sprite.animations, 0, 1, {
-            x: sprite.x,
-            y: sprite.y
-          });
-        }
-      }
-      return this.sprites = this.sprites.concat(new_sprites);
-    };
-
-    DwimGraphics.prototype.replaceNextRecordSprite = function(move) {
-      var sprite, _i, _len, _ref;
-      _ref = this.record_sprites;
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        sprite = _ref[_i];
-        if (sprite.clock === this.next_record_sprite.clock) {
-          sprite.render = this.renderRecordSpriteArrow;
-          if (move.type === 'move') {
-            sprite.dir = move.dir;
-          } else {
-            sprite.mode_idx = move.idx;
-          }
-          sprite.programmed = true;
-          this.animatePopIn(sprite.animations, 1, 1);
-        }
-      }
-      return this.advanceNextRecordSprite(1);
-    };
-
-    DwimGraphics.prototype.scrollRecordSprites = function(new_sprites) {
-      var desty, i, sprite, width, _i, _j, _len, _len1, _ref, _ref1;
-      width = this.record_dims.Wi;
-      _ref = this.record_sprites.slice(0, width);
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        sprite = _ref[_i];
-        sprite.animations.push({
-          duration: 125,
-          lerp: [
-            {
-              name: 'scale',
-              v0: 1,
-              v1: 0
-            }, {
-              name: 'y',
-              v1: this.record_dims.y - this.block
-            }
-          ],
-          remove_on_finish: true
-        });
-      }
-      this.record_sprites = this.record_sprites.slice(width);
-      _ref1 = this.record_sprites;
-      for (i = _j = 0, _len1 = _ref1.length; _j < _len1; i = ++_j) {
-        sprite = _ref1[i];
-        desty = this.record_dims.y + (.5 + Math.floor(i / width)) * this.block + .5;
-        if (__indexOf.call(new_sprites, sprite) >= 0) {
-          sprite.animations.push({
-            duration: 100,
-            lerp: [
-              {
-                name: 'y',
-                v1: (desty - sprite.y) * (100 / 125) + sprite.y
-              }, {
-                name: 'scale',
-                v0: 0,
-                v1: 1.25
-              }
-            ]
-          });
-          sprite.animations.push({
-            duration: 25,
-            lerp: [
-              {
-                name: 'y',
-                v1: desty
-              }, {
-                name: 'scale',
-                v1: 1
-              }
-            ]
-          });
-        } else {
-          sprite.animations = [
-            {
-              duration: 125,
-              lerp: [
-                {
-                  name: 'y',
-                  v1: desty
-                }
-              ],
-              set: [
-                {
-                  name: 'scale',
-                  v: 1
-                }
-              ]
-            }
-          ];
-        }
-      }
-      return this.advanceNextRecordSprite(0);
-    };
-
-    DwimGraphics.prototype.showClue = function(where) {
-      var xi, yi;
-      if (where === null) {
-        this.clues = [];
-        return;
-      }
-      xi = Math.floor((where.x - this.board_dims.x) / this.block);
-      yi = Math.floor((where.y - this.board_dims.y) / this.block);
-      if ((this.game_state.level[xi] != null) && (this.game_state.level[xi][yi] != null) && this.game_state.level[xi][yi].type === 'program') {
-        return this.clues = [this.game_state.programs[this.game_state.level[xi][yi].id]];
-      } else {
-        return this.clues = [];
-      }
+      return _results;
     };
 
     DwimGraphics.prototype.renderClues = function() {
-      var bs, clue, command, idx, xi, _i, _ref;
-      if (this.clues.length === 0) {
-        return;
-      }
+      var action, bs, command, idx, label, mode, program, xi, yi, _i, _j, _len, _ref, _ref1;
       this.ctx.save();
-      clue = this.clues[0];
       this.ctx.translate(this.clues_dims.x + this.block * .5, this.clues_dims.y + this.block * .5);
       bs = this.block * .875;
       xi = 0;
-      for (idx = _i = 0, _ref = clue.code.length; 0 <= _ref ? _i < _ref : _i > _ref; idx = 0 <= _ref ? ++_i : --_i) {
-        command = clue.code.charAt(idx);
-        this.ctx.fillStyle = this.instruction_colors[command];
-        this.ctx.fillRect(0, 0, bs, bs);
+      yi = 0;
+      _ref = this.program_labels;
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        label = _ref[_i];
+        program = this.game_state.programs[label.id];
+        if (xi + program.code.length + 2 >= this.clues_dims.Wi) {
+          this.ctx.translate(-xi * this.block, this.block * 1.5);
+          xi = 0;
+          yi += 1.5;
+        }
+        this.ctx.strokeStyle = 'white';
+        this.ctx.save();
+        this.ctx.translate(.5, .5 + this.block * .125);
+        this.renderLetter(label.letter, this.block * .75);
+        this.ctx.restore();
         this.ctx.translate(this.block, 0);
         xi += 1;
-        if (xi >= this.clues_dims.Wi) {
-          this.ctx.translate(-xi * this.block, this.block);
-          xi = 0;
+        mode = this.game_state.current_mode;
+        for (idx = _j = 0, _ref1 = program.code.length; 0 <= _ref1 ? _j < _ref1 : _j > _ref1; idx = 0 <= _ref1 ? ++_j : --_j) {
+          command = program.code.charAt(idx);
+          this.ctx.fillStyle = this.instruction_colors[command];
+          this.ctx.fillRect(0, 0, bs, bs);
+          if (mode !== 'unknown') {
+            action = mode.lookup[command];
+            this.ctx.translate(bs / 2 + .5, bs / 2 + .5);
+            if (action != null) {
+              this.renderCommand(mode.lookup[command], this.block);
+              if (mode.lookup[command].type === 'mode') {
+                mode = this.game_state.modes[mode.lookup[command].idx];
+              }
+            } else {
+              this.renderShape('question', this.block / 2);
+              mode = 'unknown';
+            }
+            this.ctx.translate(-bs / 2 - .5, -bs / 2 - .5);
+          }
+          if (this.game_state.current_program_id === label.id && idx === this.game_state.current_program_history.length - 1) {
+            this.ctx.save();
+            this.ctx.strokeStyle = 'yellow';
+            this.ctx.lineWidth = 4;
+            this.ctx.strokeRect(0, 0, bs, bs);
+            this.ctx.restore();
+          }
+          this.ctx.translate(this.block, 0);
+          xi += 1;
         }
+        this.ctx.translate(this.block, 0);
+        xi += 1;
       }
       return this.ctx.restore();
     };
@@ -1035,6 +810,23 @@
           this.ctx.lineTo(cb, ics);
           this.ctx.lineTo(0, ics - cb);
           this.ctx.closePath();
+          break;
+        case 'clover':
+          r = radius * .75;
+          r2 = r / 2;
+          this.ctx.moveTo(0, -r2);
+          this.ctx.arc(r2, -r2, r2, Math.PI, -1.5 * Math.PI);
+          this.ctx.arc(r2, r2, r2, -.5 * Math.PI, Math.PI);
+          this.ctx.arc(-r2, r2, r2, 0, -.5 * Math.PI);
+          this.ctx.arc(-r2, -r2, r2, -1.5 * Math.PI, 0);
+          break;
+        case 'pinch':
+          r = radius * .75;
+          this.ctx.moveTo(-r, -r);
+          this.ctx.quadraticCurveTo(0, 0, r, -r);
+          this.ctx.quadraticCurveTo(0, 0, r, r);
+          this.ctx.quadraticCurveTo(0, 0, -r, r);
+          this.ctx.quadraticCurveTo(0, 0, -r, -r);
       }
       if (fill) {
         this.ctx.fill();
@@ -1089,6 +881,37 @@
         this.ctx.translate(5 * scale, 0);
       }
       return this.ctx.restore();
+    };
+
+    DwimGraphics.prototype.letterGraphics = {
+      a: [[[0, 1], [1.5, 1], [1.5, 3], [0, 3], [0, 2], [1.5, 2]]],
+      b: [[[0, 0], [0, 3], [1.5, 3], [1.5, 1.5], [0, 1.5]]],
+      c: [[[1.5, 1], [0, 1], [0, 3], [1.5, 3]]],
+      d: [[[2, 0], [2, 3], [.5, 3], [.5, 1.5], [2, 1.5]]],
+      e: [[[0, 2], [1.5, 2], [1.5, 1], [0, 1], [0, 3], [1.5, 3]]],
+      f: [[[.5, 1.5], [1.5, 1.5]], [[2, 0], [1, 0], [1, 3]]]
+    };
+
+    DwimGraphics.prototype.renderLetter = function(l, scale) {
+      var g, line, point, _i, _j, _len, _len1, _ref;
+      if (scale == null) {
+        scale = this.block / 2;
+      }
+      g = this.letterGraphics[l];
+      if (g == null) {
+        return;
+      }
+      this.ctx.beginPath();
+      for (_i = 0, _len = g.length; _i < _len; _i++) {
+        line = g[_i];
+        this.ctx.moveTo(line[0][0] / 4 * scale, line[0][1] / 4 * scale);
+        _ref = line.slice(1);
+        for (_j = 0, _len1 = _ref.length; _j < _len1; _j++) {
+          point = _ref[_j];
+          this.ctx.lineTo(point[0] / 4 * scale, point[1] / 4 * scale);
+        }
+      }
+      return this.ctx.stroke();
     };
 
     return DwimGraphics;

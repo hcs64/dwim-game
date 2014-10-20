@@ -185,6 +185,8 @@
       }
       this.current_mode = this.modes[0];
       this.current_program = [];
+      this.current_program_id = -1;
+      this.current_program_history = [];
     }
 
     DwimState.prototype.requestBotMove = function(dir) {
@@ -212,7 +214,9 @@
       block = this.level[this.bot.x][this.bot.y];
       if (block.type === 'program') {
         if (this.current_program.length === 0) {
-          return this.current_program = this.programs[block.id].code.split('');
+          this.current_program = this.programs[block.id].code.split('');
+          this.current_program_id = block.id;
+          return this.current_program_history = [];
         }
       }
     };
@@ -259,6 +263,7 @@
       if (!success) {
         this.current_program.unshift(symbol);
       }
+      this.current_program_history.push(command);
       return {
         success: success,
         move: command
@@ -289,7 +294,6 @@
       this.parent_div = parent_div;
       this.level = level;
       this.level_id = level_id;
-      this.mouseCB = __bind(this.mouseCB, this);
       this.keyboardCB = __bind(this.keyboardCB, this);
       this.render = __bind(this.render, this);
       this.state = new DwimState(this.level);
@@ -303,14 +307,12 @@
     Dwim.prototype.startRender = function() {
       var rendering;
       registerKeyFunction(this.keyboardCB);
-      registerMouseFunction(this.parent_div, this.mouseCB);
       requestAnimationFrame(this.render);
       return rendering = true;
     };
 
     Dwim.prototype.render = function(absolute_t) {
       if (this.state.halted) {
-        this.gfx.showClue(null);
         if (this.state.won) {
           this.linkNextLevel();
         } else {
@@ -323,6 +325,7 @@
         requestAnimationFrame(this.render);
         return this.rendering = true;
       } else {
+        this.gfx.render(absolute_t);
         return this.rendering = false;
       }
     };
@@ -345,14 +348,6 @@
       }
     };
 
-    Dwim.prototype.mouseCB = function(what, where) {
-      this.gfx.showClue(where);
-      if (!this.rendering) {
-        requestAnimationFrame(this.render);
-        return this.rendering = true;
-      }
-    };
-
     Dwim.prototype.processPlayerMove = function(move) {
       var old_pos;
       if (this.state.current_program.length > 0) {
@@ -366,18 +361,7 @@
       } else {
         old_pos = this.bot_sprite.computePos();
         if (this.state.requestBotMove(move)) {
-          this.bot_sprite.animateMove(old_pos, move);
-          this.gfx.addRecordSprite({
-            type: 'move',
-            dir: move
-          });
-          if (this.state.current_program.length > 0) {
-            return this.gfx.onAnimComplete((function(_this) {
-              return function() {
-                return _this.gfx.addProgramSprites();
-              };
-            })(this));
-          }
+          return this.bot_sprite.animateMove(old_pos, move);
         } else {
           return this.bot_sprite.animateBump(old_pos, move);
         }
@@ -402,16 +386,15 @@
       } else {
         this.state.current_mode = this.state.modes[mode_idx];
         this.gfx.animatePopIn(this.mode_sprites[mode_idx].animations, 1, 1);
-        this.gfx.animatePopIn(this.bot_sprite.animations, 1, 1);
-        return this.gfx.addRecordSprite({
-          type: 'mode',
-          idx: mode_idx
-        });
+        return this.gfx.animatePopIn(this.bot_sprite.animations, 1, 1);
       }
     };
 
     Dwim.prototype.processProgram = function() {
       var move, new_pos, old_pos, old_prog, success, _ref;
+      if (!this.gfx.isAnimating() && this.state.current_program.length === 0) {
+        this.state.current_program_id = -1;
+      }
       if (!this.gfx.isAnimating() && this.state.current_program.length > 0 && !this.state.halted) {
         old_pos = this.bot_sprite.computePos();
         old_prog = this.state.current_program;
@@ -419,18 +402,10 @@
         if (success) {
           new_pos = this.bot_sprite.computePos();
           if (old_pos.x !== new_pos.x || old_pos.y !== new_pos.y) {
-            this.bot_sprite.animateMove(old_pos, move.dir);
+            return this.bot_sprite.animateMove(old_pos, move.dir);
           } else if (move.type === 'mode') {
             this.gfx.animatePopIn(this.mode_sprites[move.idx].animations, 1, 1);
-            this.gfx.animatePopIn(this.bot_sprite.animations, 1, 1);
-          }
-          this.gfx.replaceNextRecordSprite(move);
-          if (this.state.current_program !== old_prog) {
-            return this.gfx.onAnimComplete((function(_this) {
-              return function() {
-                return _this.gfx.addProgramSprites();
-              };
-            })(this));
+            return this.gfx.animatePopIn(this.bot_sprite.animations, 1, 1);
           }
         } else if (move !== null) {
           this.bot_sprite.animateBump(old_pos, move.dir);
