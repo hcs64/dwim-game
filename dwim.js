@@ -237,7 +237,8 @@
     };
 
     DwimState.prototype.doWhatMustBeDone = function() {
-      var command, success, symbol;
+      var command, old_mode, success, symbol;
+      old_mode = this.current_mode;
       if (this.current_program.length === 0) {
         return {
           success: false,
@@ -263,7 +264,10 @@
       if (!success) {
         this.current_program.unshift(symbol);
       }
-      this.current_program_history.push(command);
+      this.current_program_history.push({
+        mode: old_mode,
+        command: command
+      });
       return {
         success: success,
         move: command

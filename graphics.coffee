@@ -471,7 +471,13 @@ class DwimGraphics
       @ctx.translate(@block, 0)
       xi += 1
 
-      mode = @game_state.current_mode
+      pid = @game_state.current_program_id
+      phl = @game_state.current_program_history.length
+
+      if pid != label.id or phl == 0
+        mode = @game_state.current_mode
+      else
+        mode = @game_state.current_program_history[phl-1].mode
 
       highlight = -1
 
@@ -480,9 +486,6 @@ class DwimGraphics
         @ctx.fillStyle = @instruction_colors[command]
         @ctx.fillRect(0,0,bs,bs)
         
-        phl = @game_state.current_program_history.length
-        pid = @game_state.current_program_id
-
         was_unknown = (mode == 'unknown')
 
         if not was_unknown
@@ -493,8 +496,8 @@ class DwimGraphics
             if pid != label.id
               @renderCommand(mode.lookup[command], @block)
 
-            if mode.lookup[command].type == 'mode'
-              mode = @game_state.modes[mode.lookup[command].idx]
+            if action.type == 'mode'
+              mode = @game_state.modes[action.idx]
           else
             if pid != label.id
               @renderShape('question', @block/2)
@@ -502,7 +505,8 @@ class DwimGraphics
           @ctx.translate(-bs/2-.5, -bs/2-.5)
 
         if pid == label.id and
-           (idx == phl-1 or (not was_unknown and mode == 'unknown' and idx == phl))
+           (idx == phl-1 or (!was_unknown and mode == 'unknown' and idx == phl))
+           
           highlight = xi
 
         @ctx.translate(@block, 0)

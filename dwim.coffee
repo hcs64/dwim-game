@@ -150,6 +150,8 @@ class DwimState
       mode.symbols.push(symbol)
     
   doWhatMustBeDone: () ->
+    old_mode = @current_mode
+
     if @current_program.length == 0
       return {success: false, move: null}
     symbol = @current_program.shift()
@@ -168,7 +170,7 @@ class DwimState
     if not success
       @current_program.unshift(symbol)
 
-    @current_program_history.push(command)
+    @current_program_history.push(mode: old_mode, command: command)
 
     return {success: success, move: command}
 
