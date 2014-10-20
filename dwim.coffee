@@ -110,7 +110,6 @@ class DwimState
     @current_mode = @modes[0]
     @current_program = []
     @current_program_id = -1
-    @current_program_history = []
 
   requestBotMove: (dir) ->
     dest = {x: @bot.x + dir.dx, y: @bot.y + dir.dy}
@@ -136,7 +135,6 @@ class DwimState
       if @current_program.length == 0
         @current_program = @programs[block.id].code.split('')
         @current_program_id = block.id
-        @current_program_history = []
 
   mappingLookup: (mode, symbol) ->
     if symbol of mode.lookup
@@ -150,8 +148,6 @@ class DwimState
       mode.symbols.push(symbol)
     
   doWhatMustBeDone: () ->
-    old_mode = @current_mode
-
     if @current_program.length == 0
       return {success: false, move: null}
     symbol = @current_program.shift()
@@ -169,8 +165,6 @@ class DwimState
 
     if not success
       @current_program.unshift(symbol)
-
-    @current_program_history.push(mode: old_mode, command: command)
 
     return {success: success, move: command}
 
@@ -199,6 +193,9 @@ class Dwim
 
     @mode_sprites = @gfx.makeModeSprites()
     @gfx.sprites = @gfx.sprites.concat(@mode_sprites)
+
+    @clues_sprite = @gfx.makeCluesSprite()
+    @gfx.sprites.push(@clues_sprite)
 
   startRender: ->
     registerKeyFunction(@keyboardCB)
@@ -322,14 +319,14 @@ class Dwim
       @gfx.animatePopIn(@bot_sprite.animations, 1, 1)
 
   processProgram: ->
-    if not @gfx.isAnimating() and @state.current_program.length == 0
-      @state.current_program_id = -1
-
     if not @gfx.isAnimating() and
        @state.current_program.length > 0 and
        not @state.halted
       old_pos = @bot_sprite.computePos()
       old_prog = @state.current_program
+      @clues_sprite.program_id = @state.current_program_id
+      @clues_sprite.program_idx = @state.programs[@state.current_program_id].code.length - @state.current_program.length
+
       {success: success, move: move} = @state.doWhatMustBeDone()
       if success
         new_pos = @bot_sprite.computePos()
@@ -339,9 +336,11 @@ class Dwim
           @gfx.animatePopIn(@mode_sprites[move.idx].animations, 1, 1)
           @gfx.animatePopIn(@bot_sprite.animations, 1, 1)
 
+        @gfx.onAnimComplete(=> @clues_sprite.program_id = -1)
       else if move != null
         @bot_sprite.animateBump(old_pos, move.dir)
         @state.halted = true
+
 
   linkNextLevel: ->
     if @linked_next_level
