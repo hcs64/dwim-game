@@ -569,7 +569,7 @@
         this.ctx.save();
         this.ctx.strokeStyle = 'yellow';
         this.ctx.lineWidth = 4;
-        this.ctx.strokeRect(0, 0 + idx * ocs, ocs, ocs);
+        this.ctx.strokeRect(-.5, -.5 + idx * ocs, ocs, ocs);
         return this.ctx.restore();
       }
     };
@@ -642,7 +642,7 @@
     };
 
     DwimGraphics.prototype.renderClues = function() {
-      var action, bs, command, idx, label, mode, program, xi, yi, _i, _j, _len, _ref, _ref1;
+      var action, bs, command, highlight, idx, label, mode, phl, pid, program, was_unknown, xi, yi, _i, _j, _len, _ref, _ref1;
       this.ctx.save();
       this.ctx.translate(this.clues_dims.x + this.block * .5, this.clues_dims.y + this.block * .5);
       bs = this.block * .875;
@@ -664,38 +664,46 @@
         this.ctx.restore();
         this.ctx.translate(this.block, 0);
         xi += 1;
-        if (this.game_state.current_program_id === label.id) {
-          mode = 'unknown';
-        } else {
-          mode = this.game_state.current_mode;
-        }
+        mode = this.game_state.current_mode;
+        highlight = -1;
         for (idx = _j = 0, _ref1 = program.code.length; 0 <= _ref1 ? _j < _ref1 : _j > _ref1; idx = 0 <= _ref1 ? ++_j : --_j) {
           command = program.code.charAt(idx);
           this.ctx.fillStyle = this.instruction_colors[command];
           this.ctx.fillRect(0, 0, bs, bs);
-          if (mode !== 'unknown') {
+          phl = this.game_state.current_program_history.length;
+          pid = this.game_state.current_program_id;
+          was_unknown = mode === 'unknown';
+          if (!was_unknown) {
             action = mode.lookup[command];
             this.ctx.translate(bs / 2 + .5, bs / 2 + .5);
             if (action != null) {
-              this.renderCommand(mode.lookup[command], this.block);
+              if (pid !== label.id) {
+                this.renderCommand(mode.lookup[command], this.block);
+              }
               if (mode.lookup[command].type === 'mode') {
                 mode = this.game_state.modes[mode.lookup[command].idx];
               }
             } else {
-              this.renderShape('question', this.block / 2);
+              if (pid !== label.id) {
+                this.renderShape('question', this.block / 2);
+              }
               mode = 'unknown';
             }
             this.ctx.translate(-bs / 2 - .5, -bs / 2 - .5);
           }
-          if (this.game_state.current_program_id === label.id && idx === this.game_state.current_program_history.length - 1) {
-            this.ctx.save();
-            this.ctx.strokeStyle = 'yellow';
-            this.ctx.lineWidth = 4;
-            this.ctx.strokeRect(0, 0, bs, bs);
-            this.ctx.restore();
+          if (pid === label.id && (idx === phl - 1 || (!was_unknown && mode === 'unknown' && idx === phl))) {
+            highlight = xi;
           }
           this.ctx.translate(this.block, 0);
           xi += 1;
+        }
+        if (highlight !== -1) {
+          this.ctx.save();
+          this.ctx.translate(-(xi - highlight) * this.block, 0);
+          this.ctx.strokeStyle = 'yellow';
+          this.ctx.lineWidth = 4;
+          this.ctx.strokeRect(0, 0, bs, bs);
+          this.ctx.restore();
         }
         this.ctx.translate(this.block, 0);
         xi += 1;
