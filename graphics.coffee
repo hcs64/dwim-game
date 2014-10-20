@@ -9,10 +9,10 @@ class DwimGraphics
       width: @block*3
       height: @block*10
     @mode_appearance = [
-      {x: 0, y: 0, invert: false, circle: true},
-      {x: @block*2, y: 0, invert: true, circle: true},
-      {x: 0, y: @block*6, invert: false, circle: false},
-      {x: @block*2, y: @block*6, invert: true, circle: false}]
+      {x: 0, y: 0, shape: 'circle'}
+      {x: @block*2, y: 0, shape: 'diamond'}
+      {x: 0, y: @block*6, shape: 'clover'}
+      {x: @block*2, y: @block*6, shape: 'pinch'}]
     @record_dims =
       x: @mode_dims.x + @mode_dims.width + @block
       y: 10
@@ -479,18 +479,12 @@ class DwimGraphics
     if radius == 0
       return
     mode_appearance = @mode_appearance[mode]
-    if mode_appearance.invert
-      @ctx.strokeStyle = 'black'
-      @ctx.fillStyle = 'white'
-    else
-      @ctx.strokeStyle = 'white'
-      @ctx.fillStyle = 'black'
+
+    @ctx.strokeStyle = 'white'
+    @ctx.fillStyle = 'black'
 
     @ctx.lineWidth = 1.5
-    if mode_appearance.circle
-      @renderShape('circle', radius*.4, true)
-    else
-      @renderShape('diamond', radius*.4, true)
+    @renderShape(mode_appearance.shape, radius*.4, true)
  
   # record sprite insertion behaviors
   # normal: pop in
@@ -758,6 +752,21 @@ class DwimGraphics
         @ctx.lineTo(cb, ics)
         @ctx.lineTo(0, ics-cb)
         @ctx.closePath()
+      when 'clover'
+        r = radius*.75
+        r2 = r/2
+        @ctx.moveTo(0,-r2)
+        @ctx.arc( r2,-r2, r2,     Math.PI, -1.5*Math.PI)
+        @ctx.arc( r2, r2, r2, -.5*Math.PI,      Math.PI)
+        @ctx.arc(-r2, r2, r2,           0,  -.5*Math.PI)
+        @ctx.arc(-r2,-r2, r2,-1.5*Math.PI,    0)
+      when 'pinch'
+        r = radius*.75
+        @ctx.moveTo(-r,-r)
+        @ctx.quadraticCurveTo(0,0, r,-r)
+        @ctx.quadraticCurveTo(0,0, r, r)
+        @ctx.quadraticCurveTo(0,0,-r, r)
+        @ctx.quadraticCurveTo(0,0,-r,-r)
   
     if fill
       @ctx.fill()
