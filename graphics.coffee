@@ -1,33 +1,26 @@
 class DwimGraphics
   constructor: (@parent_div, @game_state) ->
-    # constants of layout
+    # layout constants
     @block = 32
 
     @mode_dims =
       x: 10
-      y: 72
+      y: 10
       width: @block*3
-      height: @block*10
+      height: @block*11
     @mode_appearance = [
       {x: 0, y: 0, shape: 'circle'}
       {x: @block*2, y: 0, shape: 'diamond'}
       {x: 0, y: @block*6, shape: 'clover'}
       {x: @block*2, y: @block*6, shape: 'pinch'}]
-    @record_dims =
-      x: @mode_dims.x + @mode_dims.width + @block
-      y: 10
-      width: @block*10
-      height: @block*2
-      Wi: 10
-      Hi: 2
     @board_dims =
       x: @mode_dims.x+@mode_dims.width+@block
-      y: @record_dims.y+@record_dims.height+@block
+      y: 10+@block/2
       width: @block*10
       height: @block*10
     @clues_dims =
       x: 10
-      y: @board_dims.y+@board_dims.height
+      y: @mode_dims.y+@mode_dims.height
       width: @block*14
       height: @block*2
       Wi: 14
@@ -49,9 +42,6 @@ class DwimGraphics
 
     @sprites = []
     @anim_complete_callbacks = []
-    @record_sprites = []
-    @record_sprite_clock = 0
-    @addNextRecordSprite()
 
     @clues = []
 
@@ -402,79 +392,6 @@ class DwimGraphics
     anims.push(pop_0)
     anims.push(pop_1)
 
-  addNextRecordSprite: ->
-    nrs = @next_record_sprite =
-      xi: 0
-      yi: 0
-      gfx: this
-      computePos: ->
-        x: @gfx.record_dims.x + (.5 + @xi) * @gfx.block
-        y: @gfx.record_dims.y + (.5 + @yi) * @gfx.block
-      render: (sprite) =>
-        @ctx.strokeStyle = 'white'
-        @ctx.lineWidth = 2
-        if sprite.scale > 0
-          @ctx.scale(sprite.scale, sprite.scale)
-          @renderShape('square', @block*.625)
-      scale: 1
-      clock: 0
-      animations: []
-    {x:nrs.x, y:nrs.y} = nrs.computePos()
-    @sprites.push(nrs)
-
-  advanceNextRecordSprite: (count) ->
-    nrs = @next_record_sprite
-    width = @record_dims.Wi
-    old_pos = {xi: nrs.xi, yi: nrs.yi}
-    nrs.clock += count
-    
-    nrs.xi = nrs.clock
-    nrs.yi = 0
-    if @record_sprites.length > 0
-      nrs.xi -= @record_sprites[0].clock
-
-    while nrs.xi >= width
-      nrs.xi -= width
-      nrs.yi += 1
-
-    {x:x, y:y} = nrs.computePos()
-
-    if count == 0
-      # everything is scrolling
-      @next_record_sprite.animations.push(
-        duration: 125
-        lerp: [
-          {name: 'x', v1: x},
-          {name: 'y', v1: y}
-        ]
-      )
-    else
-      # wait a bit for pop
-      @next_record_sprite.animations.push(
-        duration: 50
-      )
-      @next_record_sprite.animations.push(
-        duration: 75
-        lerp: [
-          {name: 'x', v1: x},
-          {name: 'y', v1: y}
-        ]
-      )
-
-  renderRecordSpriteArrow: (sprite) =>
-    if sprite.scale > 0
-      @ctx.scale(sprite.scale, sprite.scale)
-      if sprite.programmed
-        bs = @block * 7/16
-        @ctx.fillStyle = @instruction_colors[sprite.command]
-        @ctx.fillRect(-bs-.5, -bs-.5, bs*2, bs*2)
-      @ctx.strokeStyle = 'white'
-
-      if sprite.dir?
-        @renderArrow(sprite.dir.theta, @block)
-      else
-        @renderBotMode(sprite.mode_idx, @block)
-
   renderBotMode: (mode, radius) ->
     if radius == 0
       return
@@ -486,130 +403,6 @@ class DwimGraphics
     @ctx.lineWidth = 1.5
     @renderShape(mode_appearance.shape, radius*.4, true)
  
-  # record sprite insertion behaviors
-  # normal: pop in
-  # last column in all-but-last row: pop
-  # last column in last row: pop and scroll
-  addRecordSprite: (move) ->
-    height = @record_dims.Hi
-    width = @record_dims.Wi
-
-    sprite =
-      x: @record_dims.x + (.5 + @record_sprites.length) * @block + .5
-      y: @record_dims.y + .5 * @block + .5
-      scale: 0
-      render: @renderRecordSpriteArrow
-      programmed: false
-      clock: @record_sprite_clock
-      animations: []
-
-    if move.type == 'move'
-      sprite.dir = move.dir
-    else
-      sprite.mode_idx = move.idx
-
-    while sprite.x > @record_dims.x + @record_dims.width
-      sprite.x -= @record_dims.width
-      sprite.y += @block
-
-    @record_sprites.push(sprite)
-    @record_sprite_clock += 1
-
-    if @record_sprites.length == height * width
-      @scrollRecordSprites([sprite])
-    else
-      @animatePopIn(sprite.animations, 0, 1, {x:sprite.x, y:sprite.y})
-
-    @advanceNextRecordSprite(1)
-
-    @sprites.push(sprite)
-
-  addProgramSprites: () ->
-    new_sprites = []
-    for command in @game_state.current_program
-      height = @record_dims.Hi
-      width = @record_dims.Wi
-
-      sprite =
-        x: @record_dims.x + (.5 + @record_sprites.length) * @block + .5
-        y: @record_dims.y + .5 * @block + .5
-        scale: 0
-        command: command
-        programmed: true
-        render: (sprite) =>
-          if sprite.scale > 0
-            @ctx.scale(sprite.scale, sprite.scale)
-            bs = @block * 7/16
-            @ctx.fillStyle = @instruction_colors[sprite.command]
-            @ctx.fillRect(-bs-.5, -bs-.5, bs*2, bs*2)
-        clock: @record_sprite_clock
-        animations: []
-
-      while sprite.x > @record_dims.x + @record_dims.width
-        sprite.x -= @record_dims.width
-        sprite.y += @block
-
-      @record_sprites.push(sprite)
-      @record_sprite_clock += 1
-      new_sprites.push(sprite)
-
-    if @record_sprites.length >= height * width
-      @scrollRecordSprites(new_sprites)
-    else
-      for sprite in new_sprites
-        @animatePopIn(sprite.animations, 0, 1, {x:sprite.x, y:sprite.y})
-
-    @sprites = @sprites.concat(new_sprites)
-        
-  replaceNextRecordSprite: (move) ->
-    for sprite in @record_sprites
-      if sprite.clock == @next_record_sprite.clock
-        sprite.render = @renderRecordSpriteArrow
-        if move.type == 'move'
-          sprite.dir = move.dir
-        else
-          sprite.mode_idx = move.idx
-        sprite.programmed = true
-        @animatePopIn(sprite.animations, 1, 1)
-    @advanceNextRecordSprite(1)
-
-  scrollRecordSprites: (new_sprites) ->
-    width = @record_dims.Wi
-    for sprite in @record_sprites[0...width]
-      sprite.animations.push(
-        duration: 125
-        lerp: [ {name: 'scale', v0: 1, v1: 0},
-                {name: 'y', v1: @record_dims.y-@block} ]
-        remove_on_finish: true
-      )
-      
-    @record_sprites = @record_sprites[width..]
-
-    for sprite,i in @record_sprites
-      desty = @record_dims.y+(.5  + i//width)*@block + .5
-      if sprite in new_sprites
-        # this does a mix of pop in and scroll up
-        sprite.animations.push(
-          duration: 100
-          lerp: [ {name: 'y', v1: (desty-sprite.y)*(100/125)+sprite.y},
-                  {name: 'scale', v0: 0, v1: 1.25}
-                ]
-        )
-        sprite.animations.push(
-          duration: 25
-          lerp: [ {name: 'y', v1: desty},
-                  {name: 'scale', v1: 1}
-                ]
-        )
-      else
-        sprite.animations = [
-          duration: 125
-          lerp: [ {name: 'y', v1: desty} ]
-          set: [ {name: 'scale', v: 1} ]
-        ]
-
-    @advanceNextRecordSprite(0)
-
   showClue: (where) ->
     if where == null
       @clues = []

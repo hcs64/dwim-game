@@ -252,11 +252,6 @@ class Dwim
       old_pos = @bot_sprite.computePos()
       if @state.requestBotMove(move)
         @bot_sprite.animateMove(old_pos, move)
-        
-        @gfx.addRecordSprite({type: 'move', dir: move})
-
-        if @state.current_program.length > 0
-          @gfx.onAnimComplete( => @gfx.addProgramSprites())
       else
         @bot_sprite.animateBump(old_pos, move)
 
@@ -278,8 +273,6 @@ class Dwim
       @gfx.animatePopIn(@mode_sprites[mode_idx].animations, 1, 1)
       @gfx.animatePopIn(@bot_sprite.animations, 1, 1)
 
-      @gfx.addRecordSprite({type: 'mode', idx: mode_idx})
-
   processProgram: ->
     if not @gfx.isAnimating() and
        @state.current_program.length > 0 and
@@ -295,10 +288,6 @@ class Dwim
           @gfx.animatePopIn(@mode_sprites[move.idx].animations, 1, 1)
           @gfx.animatePopIn(@bot_sprite.animations, 1, 1)
 
-        @gfx.replaceNextRecordSprite(move)
-
-        if @state.current_program != old_prog
-          @gfx.onAnimComplete( => @gfx.addProgramSprites())
       else if move != null
         @bot_sprite.animateBump(old_pos, move.dir)
         @state.halted = true
