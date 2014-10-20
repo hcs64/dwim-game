@@ -404,7 +404,7 @@ class DwimGraphics
       @ctx.save()
       @ctx.strokeStyle = 'yellow'
       @ctx.lineWidth = 4
-      @ctx.strokeRect(0, 0+idx*ocs, ocs, ocs)
+      @ctx.strokeRect(-.5, -.5+idx*ocs, ocs, ocs)
       @ctx.restore()
 
   animatePopIn: (anims, low_scale, scale, pos) ->
