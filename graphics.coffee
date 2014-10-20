@@ -22,9 +22,9 @@ class DwimGraphics
       x: 10
       y: @mode_dims.y+@mode_dims.height
       width: @block*14
-      height: @block*8
+      height: @block*6
       Wi: 14
-      Hi: 8
+      Hi: 6
 
     @message_pos =
       x: @board_dims.x + @board_dims.width/2
@@ -447,12 +447,13 @@ class DwimGraphics
     for label in @program_labels
       program = @game_state.programs[label.id]
       if xi + program.code.length + 2 >= @clues_dims.Wi
-        @ctx.translate(-xi*@block, @block*2)
+        @ctx.translate(-xi*@block, @block*1.5)
         xi = 0
-        yi += 2
+        yi += 1.5
+
+      @ctx.strokeStyle = 'white'
 
       @ctx.save()
-      @ctx.strokeStyle = 'white'
       @ctx.translate(.5, .5+@block*.125)
       @renderLetter(label.letter, @block*.75)
       @ctx.restore()
@@ -460,10 +461,27 @@ class DwimGraphics
       @ctx.translate(@block, 0)
       xi += 1
 
+      mode = @game_state.current_mode
+
       for idx in [0...program.code.length]
         command = program.code.charAt(idx)
         @ctx.fillStyle = @instruction_colors[command]
         @ctx.fillRect(0,0,bs,bs)
+        
+        if mode != 'unknown'
+          action = mode.lookup[command]
+
+          @ctx.translate(bs/2+.5, bs/2+.5)
+          if action?
+            @renderCommand(mode.lookup[command], @block)
+
+            if mode.lookup[command].type == 'mode'
+              mode = @game_state.modes[mode.lookup[command].idx]
+          else
+            @renderShape('question', @block/2)
+            mode = 'unknown'
+          @ctx.translate(-bs/2-.5, -bs/2-.5)
+
         @ctx.translate(@block, 0)
 
         xi += 1
