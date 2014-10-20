@@ -294,6 +294,7 @@
       this.parent_div = parent_div;
       this.level = level;
       this.level_id = level_id;
+      this.mouseCB = __bind(this.mouseCB, this);
       this.keyboardCB = __bind(this.keyboardCB, this);
       this.render = __bind(this.render, this);
       this.state = new DwimState(this.level);
@@ -307,6 +308,7 @@
     Dwim.prototype.startRender = function() {
       var rendering;
       registerKeyFunction(this.keyboardCB);
+      registerMouseFunction(this.gfx.cnv, this.mouseCB);
       requestAnimationFrame(this.render);
       return rendering = true;
     };
@@ -341,6 +343,48 @@
       } else if (key in mode_keymap) {
         mode = mode_keymap[key];
         this.processModeChange(mode);
+      }
+      if (!this.rendering) {
+        requestAnimationFrame(this.render);
+        return this.rendering = true;
+      }
+    };
+
+    Dwim.prototype.mouseCB = function(what, where) {
+      var handled, idx, ma, midx, midy, theta, xmax, xmin, ymax, ymin, _i, _len, _ref;
+      if (what !== 'click') {
+        return;
+      }
+      handled = false;
+      _ref = this.gfx.mode_appearance;
+      for (idx = _i = 0, _len = _ref.length; _i < _len; idx = ++_i) {
+        ma = _ref[idx];
+        xmin = ma.x + this.gfx.mode_dims.x;
+        xmax = xmin + this.gfx.block * 2;
+        ymin = ma.y + this.gfx.mode_dims.y;
+        ymax = ymin + this.gfx.block * 6;
+        if (where.x >= xmin && where.y >= ymin && where.x < xmax && where.y < ymax) {
+          this.processModeChange(idx);
+          handled = true;
+          break;
+        }
+      }
+      if (!handled && where.x >= this.gfx.board_dims.x && where.x < this.gfx.board_dims.x + this.gfx.board_dims.width && where.y >= this.gfx.board_dims.y && where.y < this.gfx.board_dims.y + this.gfx.board_dims.height) {
+        midx = this.gfx.board_dims.x + this.gfx.board_dims.width / 2;
+        midy = this.gfx.board_dims.y + this.gfx.board_dims.height / 2;
+        if (midx * midx + midy * midy > this.gfx.block * 3) {
+          theta = Math.atan2(where.y - midy, where.x - midx);
+          handled = true;
+          if (theta < -Math.PI * .75 || theta > Math.PI * .75) {
+            this.processPlayerMove(LEFT);
+          } else if (theta < -Math.PI * .25) {
+            this.processPlayerMove(UP);
+          } else if (theta < Math.PI * .25) {
+            this.processPlayerMove(RIGHT);
+          } else {
+            this.processPlayerMove(DOWN);
+          }
+        }
       }
       if (!this.rendering) {
         requestAnimationFrame(this.render);

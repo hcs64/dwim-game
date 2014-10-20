@@ -200,6 +200,7 @@ class Dwim
 
   startRender: ->
     registerKeyFunction(@keyboardCB)
+    registerMouseFunction(@gfx.cnv, @mouseCB)
     requestAnimationFrame(@render)
     rendering = true
 
@@ -235,6 +236,54 @@ class Dwim
     if not @rendering
       requestAnimationFrame(@render)
       @rendering = true
+
+  mouseCB: (what, where) =>
+    if what != 'click'
+      return
+
+    handled = false
+
+    # check for click on mode
+    for ma, idx in @gfx.mode_appearance
+      xmin = ma.x + @gfx.mode_dims.x
+      xmax = xmin + @gfx.block*2
+      ymin = ma.y + @gfx.mode_dims.y
+      ymax = ymin + @gfx.block*6
+
+      if where.x >= xmin && where.y >= ymin &&
+         where.x < xmax  && where.y < ymax
+        @processModeChange(idx)
+        handled = true
+        break
+
+    # check for click on quarters of board
+    if not handled &&
+       where.x >= @gfx.board_dims.x &&
+       where.x < @gfx.board_dims.x+@gfx.board_dims.width &&
+       where.y >= @gfx.board_dims.y &&
+       where.y < @gfx.board_dims.y+@gfx.board_dims.height
+
+      midx = @gfx.board_dims.x + @gfx.board_dims.width/2
+      midy = @gfx.board_dims.y + @gfx.board_dims.height/2
+
+      if midx*midx + midy*midy > @gfx.block*3
+        theta = Math.atan2(where.y-midy, where.x-midx)
+
+        handled = true
+
+        if theta < -Math.PI*.75 or theta > Math.PI*.75
+          @processPlayerMove(LEFT)
+        else if theta < -Math.PI*.25
+          @processPlayerMove(UP)
+        else if theta < Math.PI*.25
+          @processPlayerMove(RIGHT)
+        else
+          @processPlayerMove(DOWN)
+
+    if not @rendering
+      requestAnimationFrame(@render)
+      @rendering = true
+
 
   processPlayerMove: (move) ->
     if @state.current_program.length > 0
