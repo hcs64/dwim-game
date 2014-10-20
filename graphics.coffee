@@ -471,42 +471,50 @@ class DwimGraphics
       @ctx.translate(@block, 0)
       xi += 1
 
-      if @game_state.current_program_id == label.id
-        # display only colors for the current program
-        mode = 'unknown'
-      else
-        mode = @game_state.current_mode
+      mode = @game_state.current_mode
+
+      highlight = -1
 
       for idx in [0...program.code.length]
         command = program.code.charAt(idx)
         @ctx.fillStyle = @instruction_colors[command]
         @ctx.fillRect(0,0,bs,bs)
         
-        if mode != 'unknown'
+        phl = @game_state.current_program_history.length
+        pid = @game_state.current_program_id
+
+        was_unknown = (mode == 'unknown')
+
+        if not was_unknown
           action = mode.lookup[command]
 
           @ctx.translate(bs/2+.5, bs/2+.5)
           if action?
-            @renderCommand(mode.lookup[command], @block)
+            if pid != label.id
+              @renderCommand(mode.lookup[command], @block)
 
             if mode.lookup[command].type == 'mode'
               mode = @game_state.modes[mode.lookup[command].idx]
           else
-            @renderShape('question', @block/2)
+            if pid != label.id
+              @renderShape('question', @block/2)
             mode = 'unknown'
           @ctx.translate(-bs/2-.5, -bs/2-.5)
 
-        if @game_state.current_program_id == label.id and
-           idx == @game_state.current_program_history.length-1
-          @ctx.save()
-          @ctx.strokeStyle = 'yellow'
-          @ctx.lineWidth = 4
-          @ctx.strokeRect(0,0,bs,bs)
-          @ctx.restore()
+        if pid == label.id and
+           (idx == phl-1 or (not was_unknown and mode == 'unknown' and idx == phl))
+          highlight = xi
 
         @ctx.translate(@block, 0)
-
         xi += 1
+
+      if highlight != -1
+        @ctx.save()
+        @ctx.translate(-(xi-highlight)*@block, 0)
+        @ctx.strokeStyle = 'yellow'
+        @ctx.lineWidth = 4
+        @ctx.strokeRect(0,0,bs,bs)
+        @ctx.restore()
 
       @ctx.translate(@block, 0)
       xi += 1
