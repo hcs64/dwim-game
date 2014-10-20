@@ -289,11 +289,12 @@
   })();
 
   Dwim = (function() {
-    function Dwim(parent_div, level, level_id) {
+    function Dwim(parent_div, level, level_id, control_scheme) {
       var gfx;
       this.parent_div = parent_div;
       this.level = level;
       this.level_id = level_id;
+      this.control_scheme = control_scheme;
       this.mouseCB = __bind(this.mouseCB, this);
       this.keyboardCB = __bind(this.keyboardCB, this);
       this.render = __bind(this.render, this);
@@ -308,7 +309,9 @@
     Dwim.prototype.startRender = function() {
       var rendering;
       registerKeyFunction(this.keyboardCB);
-      registerMouseFunction(this.gfx.cnv, this.mouseCB);
+      if (this.control_scheme === 'mouse') {
+        registerMouseFunction(this.gfx.cnv, this.mouseCB);
+      }
       requestAnimationFrame(this.render);
       return rendering = true;
     };

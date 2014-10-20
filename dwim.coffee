@@ -188,7 +188,7 @@ class DwimState
 ################
 
 class Dwim
-  constructor: (@parent_div, @level, @level_id) ->
+  constructor: (@parent_div, @level, @level_id, @control_scheme) ->
     @state = new DwimState(@level)
     gfx = @gfx = new window.DwimGraphics(@parent_div, @state)
 
@@ -200,7 +200,8 @@ class Dwim
 
   startRender: ->
     registerKeyFunction(@keyboardCB)
-    registerMouseFunction(@gfx.cnv, @mouseCB)
+    if @control_scheme == 'mouse'
+      registerMouseFunction(@gfx.cnv, @mouseCB)
     requestAnimationFrame(@render)
     rendering = true
 
