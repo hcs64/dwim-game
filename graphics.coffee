@@ -353,16 +353,24 @@ class DwimGraphics
 
     temp_sym = mode.symbols
     current_symbol = null
-    if mode == @game_state.current_mode and
-       @game_state.current_program.length > 0
-
-      current_symbol = @game_state.current_program[0]
-      if not (@game_state.current_program[0] in mode.symbols)
-        temp_sym = mode.symbols.concat([current_symbol])
-
-    len = temp_sym.length
 
     @ctx.strokeStyle = 'white'
+
+    if mode == @game_state.current_mode
+      @ctx.save()
+
+      @ctx.lineWidth = 2.5*sprite.scale
+      @ctx.strokeRect(-@block*.25,-@block*.25,@block*1.75,@block*5.5)
+
+      @ctx.restore()
+      
+      if @game_state.current_program.length > 0
+
+        current_symbol = @game_state.current_program[0]
+        if not (@game_state.current_program[0] in mode.symbols)
+          temp_sym = mode.symbols.concat([current_symbol])
+
+    len = temp_sym.length
 
     # idx
     @renderNumber(mode.idx+1)
@@ -394,8 +402,11 @@ class DwimGraphics
     if current_symbol?
       idx = temp_sym.indexOf(current_symbol)
 
-      @ctx.lineWidth = 3
+      @ctx.save()
+      @ctx.strokeStyle = 'yellow'
+      @ctx.lineWidth = 4
       @ctx.strokeRect(0, 0+idx*ocs, ocs, ocs)
+      @ctx.restore()
 
   animatePopIn: (anims, low_scale, scale, pos) ->
     pop_0 =
@@ -481,6 +492,14 @@ class DwimGraphics
             @renderShape('question', @block/2)
             mode = 'unknown'
           @ctx.translate(-bs/2-.5, -bs/2-.5)
+
+        if @game_state.current_program_id == label.id and
+           idx == @game_state.current_program_history.length-1
+          @ctx.save()
+          @ctx.strokeStyle = 'yellow'
+          @ctx.lineWidth = 4
+          @ctx.strokeRect(0,0,bs,bs)
+          @ctx.restore()
 
         @ctx.translate(@block, 0)
 
