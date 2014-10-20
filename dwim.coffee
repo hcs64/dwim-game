@@ -194,15 +194,11 @@ class Dwim
 
   startRender: ->
     registerKeyFunction(@keyboardCB)
-    registerMouseFunction(@parent_div, @mouseCB)
-
     requestAnimationFrame(@render)
     rendering = true
 
   render: (absolute_t) =>
     if @state.halted
-      @gfx.showClue(null)
-
       if @state.won
         @linkNextLevel()
       else
@@ -228,13 +224,6 @@ class Dwim
     else if key of mode_keymap
       mode = mode_keymap[key]
       @processModeChange(mode)
-
-    if not @rendering
-      requestAnimationFrame(@render)
-      @rendering = true
-
-  mouseCB: (what, where) =>
-    @gfx.showClue(where)
 
     if not @rendering
       requestAnimationFrame(@render)

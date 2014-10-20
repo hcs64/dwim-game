@@ -22,9 +22,9 @@ class DwimGraphics
       x: 10
       y: @mode_dims.y+@mode_dims.height
       width: @block*14
-      height: @block*2
+      height: @block*8
       Wi: 14
-      Hi: 2
+      Hi: 8
 
     @message_pos =
       x: @board_dims.x + @board_dims.width/2
@@ -104,17 +104,9 @@ class DwimGraphics
     assigned = {}
     @program_labels = []
 
-    d = Math.max(@game_state.Hi, @game_state.Wi)
-
-    for i in [0..2*d]
-      for j in [0..i]
-        x = i-j
-        y = j
-
-        if @game_state.level[x]? and  @game_state.level[x][y]?
-          b = @game_state.level[x][y]
-        else
-          continue
+    for y in [0...@game_state.Hi]
+      for x in [0...@game_state.Wi]
+        b = @game_state.level[x][y]
 
         if b.type == 'program' and not assigned[b.id]
           @program_labels.push(
@@ -430,20 +422,6 @@ class DwimGraphics
     @ctx.lineWidth = 1.5
     @renderShape(mode_appearance.shape, radius*.4, true)
  
-  showClue: (where) ->
-    if where == null
-      @clues = []
-      return
-
-    xi = (where.x - @board_dims.x)//@block
-    yi = (where.y - @board_dims.y)//@block
-
-    if @game_state.level[xi]? and @game_state.level[xi][yi]? and
-       @game_state.level[xi][yi].type == 'program'
-      @clues = [ @game_state.programs[@game_state.level[xi][yi].id] ]
-    else
-      @clues = []
-
   renderLabels: ->
     @ctx.save()
 
@@ -458,27 +436,40 @@ class DwimGraphics
       @ctx.restore()
 
   renderClues: ->
-    if @clues.length == 0
-      return
-
     @ctx.save()
-
-    clue = @clues[0]
 
     @ctx.translate(@clues_dims.x+@block*.5, @clues_dims.y+@block*.5)
     bs = @block * .875
     
     xi = 0
-    for idx in [0...clue.code.length]
-      command = clue.code.charAt(idx)
-      @ctx.fillStyle = @instruction_colors[command]
-      @ctx.fillRect(0,0,bs,bs)
-      @ctx.translate(@block, 0)
+    yi = 0
 
-      xi += 1
-      if xi >= @clues_dims.Wi
-        @ctx.translate(-xi*@block, @block)
+    for label in @program_labels
+      program = @game_state.programs[label.id]
+      if xi + program.code.length + 2 >= @clues_dims.Wi
+        @ctx.translate(-xi*@block, @block*2)
         xi = 0
+        yi += 2
+
+      @ctx.save()
+      @ctx.strokeStyle = 'white'
+      @ctx.translate(.5, .5+@block*.125)
+      @renderLetter(label.letter, @block*.75)
+      @ctx.restore()
+
+      @ctx.translate(@block, 0)
+      xi += 1
+
+      for idx in [0...program.code.length]
+        command = program.code.charAt(idx)
+        @ctx.fillStyle = @instruction_colors[command]
+        @ctx.fillRect(0,0,bs,bs)
+        @ctx.translate(@block, 0)
+
+        xi += 1
+
+      @ctx.translate(@block, 0)
+      xi += 1
 
     @ctx.restore()
 
