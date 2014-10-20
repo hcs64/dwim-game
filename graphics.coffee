@@ -109,10 +109,9 @@ class DwimGraphics
         b = @game_state.level[x][y]
 
         if b.type == 'program' and not assigned[b.id]
-          @program_labels.push(
+          @program_labels[b.id] =
             x: x*@block, y: y*@block, id: b.id
-            letter: @label_letters[@program_labels.length]
-          )
+            letter: @label_letters[b.id]
           assigned[b.id] = true
 
 ################
