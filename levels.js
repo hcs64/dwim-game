@@ -47,7 +47,7 @@ levels = {
     {lookup: {r: {type: 'move', dir: RIGHT},
               b: {type: 'mode', idx: 0}},
              symbols: ['r','b']}],
-  next_level: '2a'
+  next_level: '3'
 },
 
 // 2a
@@ -61,8 +61,10 @@ levels = {
     {code: 'r', loc: '1,4'},
     {code: 'g', loc: '2,3'},
     {code: 'g', loc: '2,5'},
-    {code: 'bg', loc: '5-6,1 5-6,7'},
-    {code: 'r', loc: '5,3 5,5'}
+    {code: 'bg', loc: '5-6,1'},
+    {code: 'bg', loc: '5-6,7'},
+    {code: 'r', loc: '5,3'},
+    {code: 'r', loc: '5,5'}
   ],
   mappings: [
     {lookup: {r: {type: 'move', dir: LEFT},
