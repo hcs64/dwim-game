@@ -307,7 +307,9 @@
 
     Dwim.prototype.startRender = function() {
       var rendering;
-      registerKeyFunction(this.keyboardCB);
+      if (this.control_scheme === 'keyboard') {
+        registerKeyFunction(this.keyboardCB);
+      }
       if (this.control_scheme === 'mouse') {
         registerMouseFunction(this.gfx.cnv, this.mouseCB);
       }

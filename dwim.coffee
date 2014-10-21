@@ -198,7 +198,8 @@ class Dwim
     @gfx.sprites.push(@clues_sprite)
 
   startRender: ->
-    registerKeyFunction(@keyboardCB)
+    if @control_scheme == 'keyboard'
+      registerKeyFunction(@keyboardCB)
     if @control_scheme == 'mouse'
       registerMouseFunction(@gfx.cnv, @mouseCB)
     requestAnimationFrame(@render)
