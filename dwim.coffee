@@ -240,6 +240,8 @@ class Dwim
   mouseCB: (what, where) =>
     if what != 'click'
       return
+    if @gfx.isAnimating()
+      return
 
     handled = false
 
