@@ -357,6 +357,9 @@
       if (what !== 'click') {
         return;
       }
+      if (this.gfx.isAnimating()) {
+        return;
+      }
       handled = false;
       _ref = this.gfx.mode_appearance;
       for (idx = _i = 0, _len = _ref.length; _i < _len; idx = ++_i) {
