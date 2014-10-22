@@ -47,7 +47,7 @@ levels = {
     {lookup: {r: {type: 'move', dir: RIGHT},
               b: {type: 'mode', idx: 0}},
              symbols: ['r','b']}],
-  next_level: '3'
+  next_level: '2a'
 },
 
 // 2a
