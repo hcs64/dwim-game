@@ -28,7 +28,7 @@ levels = {
               b: {type: 'move', dir: DOWN},
               p: {type: 'move', dir: DOWN}},
               symbols: ['r','g','b','p']}],
-  next_level: '1'
+  next_level: '1a'
 },
 
 // 2
@@ -84,6 +84,27 @@ levels = {
              symbols: ['r','g','b']}],
   next_level: '3'
 }, 
+
+// 1a
+'1a': {
+  dims: {w: 10, h: 10},
+  startpos: {x: 0, y: 4},
+  exitpos: {x: 9, y: 1},
+  obstacles: ['0-6,9 6,0-3 6,5-8 7,3 7,7 8,1 8,4-5 9,2 9,7'],
+  programs: [
+    {code: 'gggppp', loc: '3,0-8'},
+    {code: 'r', loc: '8,2'},
+    {code: 'gbgb', loc: '9,4-6'},
+    {code: 'bgggpggg', loc: '7-9,9'},
+  ],
+  mappings: [
+    {lookup: {r: {type: 'move', dir: DOWN},
+              g: {type: 'move', dir: UP},
+              b: {type: 'move', dir: LEFT},
+              p: {type: 'move', dir: RIGHT}},
+             symbols: ['r','g','b', 'p']}],
+  next_level: '1'
+},
 
 // 1
 '1': {
