@@ -47,7 +47,7 @@ levels = {
     {lookup: {r: {type: 'move', dir: RIGHT},
               b: {type: 'mode', idx: 0}},
              symbols: ['r','b']}],
-  next_level: '3'
+  next_level: '2a'
 },
 
 // 2a
@@ -55,16 +55,19 @@ levels = {
   dims: {w: 10, h: 10},
   startpos: {x: 0, y: 4},
   exitpos: {x: 5, y: 4},
-  obstacles: ['0-2,0-1 3,0 0,2-3 1,2 0,5-6 1,6 0-2,7-9 3,8-9 4-9,9 7,0-1 7,7-8 8,0-2 8,6-8 9,0-8',
-              '2,4 3,3-5 4,2-6 6,3-5'],
+  obstacles: ['0-2,0-1 3,0 0,2-3 1,2 0,5-6 1,6 0-2,7-9 3,8-9 4-9,9',
+              '6-7,0-1 6-7,7-8 7-8,0-2 7-8,6-8 8,0-3 8,5-8 9,0-8',
+              '2,4 3,3-5 4,2-6',
+              '5,0 5,8',
+              '5,3 5,5'
+              ],
   programs: [
     {code: 'r', loc: '1,4'},
     {code: 'g', loc: '2,3'},
     {code: 'g', loc: '2,5'},
-    {code: 'bg', loc: '5-6,1'},
-    {code: 'bg', loc: '5-6,7'},
-    {code: 'r', loc: '5,3'},
-    {code: 'r', loc: '5,5'}
+    {code: 'bgb', loc: '4,1'},
+    {code: 'bgb', loc: '4,7'},
+    {code: 'r', loc: '6,4'},
   ],
   mappings: [
     {lookup: {r: {type: 'move', dir: LEFT},
