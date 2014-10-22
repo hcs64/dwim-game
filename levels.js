@@ -28,7 +28,7 @@ levels = {
               b: {type: 'move', dir: DOWN},
               p: {type: 'move', dir: DOWN}},
               symbols: ['r','g','b','p']}],
-  next_level: '1'
+  next_level: '1a'
 },
 
 // 2
@@ -55,16 +55,19 @@ levels = {
   dims: {w: 10, h: 10},
   startpos: {x: 0, y: 4},
   exitpos: {x: 5, y: 4},
-  obstacles: ['0-2,0-1 3,0 0,2-3 1,2 0,5-6 1,6 0-2,7-9 3,8-9 4-9,9 7,0-1 7,7-8 8,0-2 8,6-8 9,0-8',
-              '2,4 3,3-5 4,2-6 6,3-5'],
+  obstacles: ['0-2,0-1 3,0 0,2-3 1,2 0,5-6 1,6 0-2,7-9 3,8-9 4-9,9',
+              '6-7,0-1 6-7,7-8 7-8,0-2 7-8,6-8 8,0-3 8,5-8 9,0-8',
+              '2,4 3,3-5 4,2-6',
+              '5,0 5,8',
+              '5,3 5,5'
+              ],
   programs: [
     {code: 'r', loc: '1,4'},
     {code: 'g', loc: '2,3'},
     {code: 'g', loc: '2,5'},
-    {code: 'bg', loc: '5-6,1'},
-    {code: 'bg', loc: '5-6,7'},
-    {code: 'r', loc: '5,3'},
-    {code: 'r', loc: '5,5'}
+    {code: 'bgb', loc: '4,1'},
+    {code: 'bgb', loc: '4,7'},
+    {code: 'r', loc: '6,4'},
   ],
   mappings: [
     {lookup: {r: {type: 'move', dir: LEFT},
@@ -81,6 +84,27 @@ levels = {
              symbols: ['r','g','b']}],
   next_level: '3'
 }, 
+
+// 1a
+'1a': {
+  dims: {w: 10, h: 10},
+  startpos: {x: 0, y: 4},
+  exitpos: {x: 9, y: 1},
+  obstacles: ['0-6,9 6,0-3 6,5-8 7,3 7,7 8,1 8,4-5 9,2 9,7'],
+  programs: [
+    {code: 'gggppp', loc: '3,0-8'},
+    {code: 'r', loc: '8,2'},
+    {code: 'gbgb', loc: '9,4-6'},
+    {code: 'bgggpggg', loc: '7-9,9'},
+  ],
+  mappings: [
+    {lookup: {r: {type: 'move', dir: DOWN},
+              g: {type: 'move', dir: UP},
+              b: {type: 'move', dir: LEFT},
+              p: {type: 'move', dir: RIGHT}},
+             symbols: ['r','g','b', 'p']}],
+  next_level: '1'
+},
 
 // 1
 '1': {
@@ -202,8 +226,8 @@ levels = {
   next_level: '8',
 },
 
-// 9, burn extra instructions
-'9': {
+// 10, burn extra instructions
+'10': {
   dims: {w: 10, h: 10},
   startpos: {x: 0, y: 0},
   exitpos: {x: 9, y: 8},
@@ -236,6 +260,26 @@ levels = {
              {lookup: {}, symbols: []},
              {lookup: {}, symbols: []}],
   next_level: '9'
+},
+
+// 9, counts
+'9': {
+  dims: {w: 10, h: 10},
+  startpos: {x: 1, y: 9},
+  exitpos: {x: 9, y: 8},
+  obstacles: ['0-1,0-8 0,9 2-3,0-3 2,4-6 3,8-9 5,1 5-6,2-4 4-7,5-9 7,0 8-9,0-3 9,4-7 8-9,9'],
+  programs: [
+    {code: 'rp', loc: '2,7-8'},
+    {code: 'rp', loc: '3,4-6'},
+    {code: 'rp', loc: '4,0-3'},
+    {code: 'gp', loc: '6,0-1'},
+    {code: 'gp', loc: '7,2-4'},
+    {code: 'gp', loc: '8,5-8'},
+  ],
+  mappings: [{lookup: {}, symbols: []},
+             {lookup: {}, symbols: []},
+             {lookup: {}, symbols: []}],
+  next_level: '10'
 }
 
 };
