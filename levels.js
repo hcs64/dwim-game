@@ -205,8 +205,8 @@ levels = {
   next_level: '8',
 },
 
-// 9, burn extra instructions
-'9': {
+// 10, burn extra instructions
+'10': {
   dims: {w: 10, h: 10},
   startpos: {x: 0, y: 0},
   exitpos: {x: 9, y: 8},
@@ -239,6 +239,26 @@ levels = {
              {lookup: {}, symbols: []},
              {lookup: {}, symbols: []}],
   next_level: '9'
+},
+
+// 9, counts
+'9': {
+  dims: {w: 10, h: 10},
+  startpos: {x: 1, y: 9},
+  exitpos: {x: 9, y: 8},
+  obstacles: ['0-1,0-8 0,9 2-3,0-3 2,4-6 3,8-9 5,1 5-6,2-4 4-7,5-9 7,0 8-9,0-3 9,4-7 8-9,9'],
+  programs: [
+    {code: 'rp', loc: '2,7-8'},
+    {code: 'rp', loc: '3,4-6'},
+    {code: 'rp', loc: '4,0-3'},
+    {code: 'gp', loc: '6,0-1'},
+    {code: 'gp', loc: '7,2-4'},
+    {code: 'gp', loc: '8,5-8'},
+  ],
+  mappings: [{lookup: {}, symbols: []},
+             {lookup: {}, symbols: []},
+             {lookup: {}, symbols: []}],
+  next_level: '10'
 }
 
 };
