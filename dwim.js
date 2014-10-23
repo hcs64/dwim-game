@@ -303,6 +303,7 @@
       this.gfx.sprites = this.gfx.sprites.concat(this.mode_sprites);
       this.clues_sprite = this.gfx.makeCluesSprite();
       this.gfx.sprites.push(this.clues_sprite);
+      this.down_keys = {};
     }
 
     Dwim.prototype.startRender = function() {
@@ -336,10 +337,22 @@
       }
     };
 
-    Dwim.prototype.keyboardCB = function(key) {
+    Dwim.prototype.keyboardCB = function(key, keyupdown, keydown) {
       var mode, move;
       if (this.state.halted) {
         return;
+      }
+      if (keyupdown) {
+        if (this.down_keys[key]) {
+          if (!keydown) {
+            this.down_keys[key] = false;
+          }
+          return;
+        }
+        this.down_keys[key] = keydown;
+        if (!keydown) {
+          return;
+        }
       }
       if (key in keymap) {
         move = keymap[key];

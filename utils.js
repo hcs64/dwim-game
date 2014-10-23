@@ -67,21 +67,33 @@ registerKeyFunction = function (fn) {
     }
   });
 
-  //if (backspace_ret) {
   {
     document.addEventListener('keydown', function (e) {
-      if (e.keyCode === 13) {
-        fn("<return>");
-      } else if (e.keyCode === 8) {
-        fn("<backspace>");
-      } else if (e.keyCode === 38) {
-        fn("<up>");
+      if (e.keyCode === 38) {
+        fn("<up>", true, true);
       } else if (e.keyCode === 40) {
-        fn("<down>");
+        fn("<down>", true, true);
       } else if (e.keyCode === 37) {
-        fn("<left>");
+        fn("<left>", true, true);
       } else if (e.keyCode === 39) {
-        fn("<right>");
+        fn("<right>", true, true);
+      } else {
+        return
+      }
+      e.preventDefault();
+    });
+  }
+
+  {
+    document.addEventListener('keyup', function (e) {
+      if (e.keyCode === 38) {
+        fn("<up>", true, false);
+      } else if (e.keyCode === 40) {
+        fn("<down>", true, false);
+      } else if (e.keyCode === 37) {
+        fn("<left>", true, false);
+      } else if (e.keyCode === 39) {
+        fn("<right>", true, false);
       } else {
         return
       }
