@@ -197,6 +197,8 @@ class Dwim
     @clues_sprite = @gfx.makeCluesSprite()
     @gfx.sprites.push(@clues_sprite)
 
+    @down_keys = {}
+
   startRender: ->
     if @control_scheme == 'keyboard'
       registerKeyFunction(@keyboardCB)
@@ -223,9 +225,24 @@ class Dwim
       @gfx.render(absolute_t)
       @rendering = false
 
-  keyboardCB: (key) =>
+  keyboardCB: (key, keyupdown, keydown) =>
     if @state.halted
       return
+
+    if keyupdown
+      if @down_keys[key]
+        if not keydown
+          # recognize keyup
+          @down_keys[key] = false
+        # ignore keyup and additional keydown
+        return
+
+      @down_keys[key] = keydown
+
+      if not keydown
+        return
+
+      # only first keydowns should get to this point
 
     if key of keymap
       move = keymap[key]
